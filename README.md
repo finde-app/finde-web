@@ -1,14 +1,10 @@
-# Finde V4
+# Finde V5
+Integra dos recorridos en una sola web:
+- Turista: portada, destino, calendario, huéspedes, búsqueda y resultados.
+- Propietario: acceso demo, panel, alojamientos y reservas.
 
-Mockup funcional enfocado en turistas/clientes.
+Credenciales demo:
+propietario@demo.cl
+123456
 
-Flujo que se prueba en esta versión:
-1. Elegir destino.
-2. Abrir calendario visual.
-3. Seleccionar entrada y salida.
-4. Seleccionar adultos y niños.
-5. Buscar.
-6. Ver resultados.
-
-El acceso de propietarios queda como función secundaria.
-No existen pagos ni reservas reales.
+Todo es demostrativo; no guarda datos ni procesa pagos.
