@@ -1,7 +1,14 @@
-# Finde V3 — Flujo huésped
-Prueba lógica completa:
-Inicio → búsqueda → resultados → ficha → fechas/huéspedes → cálculo → reserva → confirmación.
+# Finde V4
 
-También conserva el acceso de propietarios como entrada para el próximo flujo.
+Mockup funcional enfocado en turistas/clientes.
 
-No procesa pagos ni guarda datos reales.
+Flujo que se prueba en esta versión:
+1. Elegir destino.
+2. Abrir calendario visual.
+3. Seleccionar entrada y salida.
+4. Seleccionar adultos y niños.
+5. Buscar.
+6. Ver resultados.
+
+El acceso de propietarios queda como función secundaria.
+No existen pagos ni reservas reales.
