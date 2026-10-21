@@ -1,10 +1,11 @@
-# Finde V5
-Integra dos recorridos en una sola web:
-- Turista: portada, destino, calendario, huéspedes, búsqueda y resultados.
-- Propietario: acceso demo, panel, alojamientos y reservas.
+# Finde V6 — primer ciclo conectado
 
-Credenciales demo:
-propietario@demo.cl
-123456
+Esta versión permite probar:
 
-Todo es demostrativo; no guarda datos ni procesa pagos.
+Propietario → Acceso propietarios → Alojamientos → Agregar alojamiento → Publicar
+→ volver a Finde como turista → la nueva comuna aparece en Destino → buscar → ver alojamiento.
+
+Regla implementada:
+El buscador de destinos se genera exclusivamente desde los alojamientos publicados.
+
+Los datos nuevos se guardan en localStorage del navegador. Es una demo, no un backend real.
