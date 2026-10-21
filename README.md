@@ -1,11 +1,10 @@
-# Finde V6 — primer ciclo conectado
+# Finde V7 — carga múltiple de fotografías
 
-Esta versión permite probar:
+Mantiene el ciclo de la V6 y agrega:
+- Selección múltiple de imágenes JPG/JPEG desde el computador.
+- Vista previa de las fotografías antes de publicar.
+- Eliminación de fotografías seleccionadas.
+- La primera fotografía se usa como portada.
+- Las fotografías publicadas se muestran también del lado turista.
 
-Propietario → Acceso propietarios → Alojamientos → Agregar alojamiento → Publicar
-→ volver a Finde como turista → la nueva comuna aparece en Destino → buscar → ver alojamiento.
-
-Regla implementada:
-El buscador de destinos se genera exclusivamente desde los alojamientos publicados.
-
-Los datos nuevos se guardan en localStorage del navegador. Es una demo, no un backend real.
+Importante: sigue siendo una demo en GitHub Pages. Las imágenes se almacenan localmente en el navegador mediante localStorage, por lo que fotografías muy pesadas pueden superar el límite del navegador. El almacenamiento permanente y compartido requerirá backend/almacenamiento real.
