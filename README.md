@@ -1,28 +1,17 @@
-# Finde V10 — versión acumulativa orientada a reservas
+# Finde V13 — Centro de Control Administrador
 
-Construida sobre V9. No elimina funciones anteriores.
+Versión acumulativa sobre V12. Conserva el flujo turista y el portal propietario.
 
-## Turista
-- Inicio y buscador por destinos que tienen oferta publicada.
-- Destino con filtro y scroll.
-- Fechas y huéspedes.
-- Resultados filtrados también por capacidad y disponibilidad.
-- Tarjetas con servicios principales.
-- Ficha del alojamiento con galería, descripción, tipo, capacidad, habitaciones, camas, servicios, check-in/out, política de cancelación y ubicación aproximada.
-- Comprobación de disponibilidad.
-- Cálculo del total.
-- Datos del huésped, validación básica y aceptación de condiciones.
-- Confirmación con código de reserva.
-- Bloqueo de fechas reservadas.
+## Panel Administrador
+- Resumen operativo conectado a reservas, alojamientos, pagos e incidencias.
+- Alojamientos: buscar, ver, aprobar, pausar y rechazar.
+- Propietarios: ficha y resumen de operación.
+- Reservas: detalle y cambio de estado.
+- Clientes: historial consolidado desde reservas.
+- Pagos: comisión Finde, monto del propietario y control pendiente/transferido.
+- Calendario general.
+- Reportes comerciales.
+- Configuración.
+- Incidencias: crear, gestionar y resolver.
 
-## Propietario
-- Publicar, editar y eliminar con confirmación.
-- Máximo 5 fotos JPG/JPEG.
-- Datos comerciales más completos del alojamiento.
-- Pausar/activar publicación sin borrarla.
-- Reservas con detalle del huésped.
-- Calendario de fechas ocupadas.
-- Ingresos y movimientos con comisión demostrativa.
-
-## Importante
-Sigue siendo una maqueta local en GitHub Pages/localStorage. No tiene todavía autenticación real, base de datos compartida, correo transaccional, mapas reales ni cobros/pagos reales.
+Los cambios de administración se conservan en localStorage. Sigue siendo una maqueta: no hay backend, autenticación, correo ni cobros reales.
