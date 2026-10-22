@@ -1,15 +1,28 @@
-# Finde V9 — V8 estabilizada + flujo de reserva
+# Finde V10 — versión acumulativa orientada a reservas
 
-Conserva la V8 corregida y agrega:
-- Destinos con lista desplazable (scroll), filtro al escribir y selección clickeable.
-- Flujo turista: buscar → abrir alojamiento → elegir fechas/huéspedes → calcular → reservar.
-- Formulario de huésped: nombre, correo y teléfono.
-- Confirmación de reserva en la demo.
-- Reservas guardadas localmente en el navegador.
-- La reserva aparece en el portal del propietario.
-- Calendario/disponibilidad del propietario muestra fechas ocupadas.
-- Fechas reservadas no pueden volver a reservarse para el mismo alojamiento.
-- Panel de ingresos demostrativo conectado a las reservas.
-- Se mantienen publicación, edición, eliminación con confirmación y hasta 5 fotos JPG/JPEG.
+Construida sobre V9. No elimina funciones anteriores.
 
-Sigue siendo una maqueta en GitHub Pages/localStorage. No procesa pagos reales ni tiene backend compartido.
+## Turista
+- Inicio y buscador por destinos que tienen oferta publicada.
+- Destino con filtro y scroll.
+- Fechas y huéspedes.
+- Resultados filtrados también por capacidad y disponibilidad.
+- Tarjetas con servicios principales.
+- Ficha del alojamiento con galería, descripción, tipo, capacidad, habitaciones, camas, servicios, check-in/out, política de cancelación y ubicación aproximada.
+- Comprobación de disponibilidad.
+- Cálculo del total.
+- Datos del huésped, validación básica y aceptación de condiciones.
+- Confirmación con código de reserva.
+- Bloqueo de fechas reservadas.
+
+## Propietario
+- Publicar, editar y eliminar con confirmación.
+- Máximo 5 fotos JPG/JPEG.
+- Datos comerciales más completos del alojamiento.
+- Pausar/activar publicación sin borrarla.
+- Reservas con detalle del huésped.
+- Calendario de fechas ocupadas.
+- Ingresos y movimientos con comisión demostrativa.
+
+## Importante
+Sigue siendo una maqueta local en GitHub Pages/localStorage. No tiene todavía autenticación real, base de datos compartida, correo transaccional, mapas reales ni cobros/pagos reales.
