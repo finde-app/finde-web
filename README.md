@@ -1,23 +1,15 @@
-# Finde V8 corregida — construida sobre V7
+# Finde V9 — V8 estabilizada + flujo de reserva
 
-Conserva las funciones de V7:
-- portada turística
-- destinos creados desde la oferta publicada
-- calendario
-- huéspedes
-- búsqueda y resultados
-- portal de propietarios
-- publicación de alojamientos
-- carga múltiple JPG/JPEG
+Conserva la V8 corregida y agrega:
+- Destinos con lista desplazable (scroll), filtro al escribir y selección clickeable.
+- Flujo turista: buscar → abrir alojamiento → elegir fechas/huéspedes → calcular → reservar.
+- Formulario de huésped: nombre, correo y teléfono.
+- Confirmación de reserva en la demo.
+- Reservas guardadas localmente en el navegador.
+- La reserva aparece en el portal del propietario.
+- Calendario/disponibilidad del propietario muestra fechas ocupadas.
+- Fechas reservadas no pueden volver a reservarse para el mismo alojamiento.
+- Panel de ingresos demostrativo conectado a las reservas.
+- Se mantienen publicación, edición, eliminación con confirmación y hasta 5 fotos JPG/JPEG.
 
-Agrega sin eliminar lo anterior:
-- ficha clickeable del alojamiento para turistas
-- galería de fotos
-- descripción, capacidad y precio
-- fechas, huéspedes y cálculo de estadía
-- botón Reservar de demostración
-- Editar alojamiento
-- Fotos por alojamiento, máximo 5
-- Eliminar con cuadro de confirmación propio de Finde
-
-Sigue siendo una demo local con localStorage.
+Sigue siendo una maqueta en GitHub Pages/localStorage. No procesa pagos reales ni tiene backend compartido.
