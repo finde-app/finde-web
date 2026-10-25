@@ -1,21 +1,16 @@
-# Finde V15 — Alojamientos + Experiencias
+# Finde V16 — Privacidad y disponibilidad
 
-Versión acumulativa construida sobre V14 estable.
+Versión acumulativa construida sobre V15.
 
-## Se conserva
-- Flujo completo de alojamientos de V14.
-- Selector de destinos corregido.
-- Portal propietario.
-- Panel Administración.
+## Cambios V16
+- El cliente sigue ingresando nombre, correo y teléfono al reservar.
+- Finde conserva esos datos para administración.
+- El propietario ya no ve correo ni teléfono del huésped.
+- En el panel propietario se muestra solo información operacional de la reserva.
+- Calendario del propietario con bloqueo manual de fechas.
+- El propietario puede desbloquear fechas.
+- Los bloqueos manuales afectan la disponibilidad pública y evitan nuevas reservas en ese período.
+- Las reservas confirmadas por Finde siguen bloqueando automáticamente sus fechas.
 
-## Nuevo en V15
-- Menú público Experiencias.
-- Buscador de experiencias por destino, fecha y personas.
-- Cuatro experiencias demo en Pucón: rafting, cabalgata, trekking y kayak.
-- Ficha de experiencia con prestador, duración, precio, requisitos, inclusiones y cancelación.
-- Reserva demostrativa de experiencias.
-- Código FX para reservas turísticas.
-- Reservas de experiencias visibles desde Administración > Experiencias.
-- Datos guardados localmente en localStorage.
-
-Sigue siendo una maqueta estática: no hay backend, pagos ni autenticación real.
+Se conservan alojamientos, experiencias y panel administrador de V15.
+La maqueta todavía usa localStorage; backend, autenticación y pagos reales se implementarán posteriormente.

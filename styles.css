@@ -37,3 +37,11 @@
 /* V15 experiencias */
 .experience-hero{max-width:1180px;margin:34px auto;padding:48px 38px;border-radius:22px;background:linear-gradient(120deg,#143b42,#0b756d);color:#fff}.experience-hero h1{font-size:44px;margin:10px 0}.experience-pill,.experience-category{display:inline-block;font-size:11px;font-weight:900;letter-spacing:.08em;background:#e6f7f2;color:#087a67;padding:6px 9px;border-radius:20px}.experience-hero .experience-pill{background:#ffffff22;color:#fff}.experience-search{display:grid;grid-template-columns:1.5fr 1fr .7fr auto;gap:10px;margin-top:28px;background:#fff;padding:12px;border-radius:14px;color:#173b40}.experience-search label{font-size:10px;font-weight:900}.experience-search input{display:block;width:100%;border:0;padding:8px 2px;font-size:14px}.experience-detail-hero{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:center;margin:20px 0 32px}.experience-detail-hero img{width:100%;height:360px;object-fit:cover;border-radius:18px}.experience-cross{text-align:center;background:#eef8f6;border-radius:18px;margin-bottom:45px}.experience-checkout{max-width:650px}.experience-checkout input{width:100%;padding:12px;border:1px solid #cbdcd8;border-radius:8px;margin:6px 0 14px}.section-title-row{display:flex;justify-content:space-between;align-items:end}
 @media(max-width:850px){.experience-hero{margin:18px 14px;padding:30px 20px}.experience-hero h1{font-size:34px}.experience-search{grid-template-columns:1fr}.experience-detail-hero{grid-template-columns:1fr}.experience-detail-hero img{height:250px}}
+
+/* V16 privacidad de huéspedes + disponibilidad del propietario */
+.privacy-note{margin:18px 0;padding:16px 18px;border-radius:14px;background:#f2f7f5;border:1px solid #d7e7e1}
+.privacy-note p{margin:6px 0 0;color:#60716b}
+.owner-block-form{margin-bottom:18px}
+.block-grid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end}
+.block-grid label{margin:0}.block-grid select,.block-grid input{width:100%}
+@media(max-width:850px){.block-grid{grid-template-columns:1fr}.block-grid button{width:100%}}

@@ -6,12 +6,16 @@ const seed=[
 {id:4,name:'Cabaña Costa Sur',commune:'Pichilemu',region:"O'Higgins",price:59000,cap:4,type:'Cabaña',bedrooms:2,beds:3,services:['Wifi','Estacionamiento','Parrilla'],checkin:'15:00',checkout:'11:00',cancel:'Cancelación flexible hasta 48 horas antes.',img:'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80'}];
 let listings=JSON.parse(localStorage.getItem('findeListings')||'null')||seed;
 let reservations=JSON.parse(localStorage.getItem('findeReservations')||'[]');
+let ownerBlocks=JSON.parse(localStorage.getItem('findeOwnerBlocks')||'[]');
+function saveOwnerBlocks(){localStorage.setItem('findeOwnerBlocks',JSON.stringify(ownerBlocks))}
+function manualOverlap(id,a,b){return ownerBlocks.some(v=>v.listingId==id && a<v.checkout && b>v.checkin)}
+
 let pendingPhotos=[];
 let s={dest:'',a:null,b:null,ad:2,ni:0,cal:false,g:false,m:10,y:2026,sug:false};
 const money=n=>'$'+Number(n).toLocaleString('es-CL'),fmt=x=>x?new Date(x+'T12:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short'}):'Seleccionar';
 function save(){localStorage.setItem('findeListings',JSON.stringify(listings))}
 function saveReservations(){localStorage.setItem('findeReservations',JSON.stringify(reservations))}
-function overlaps(id,a,b){return reservations.some(r=>r.listingId==id && r.status==='Confirmada' && a<r.checkout && b>r.checkin)}
+function overlaps(id,a,b){return reservations.some(r=>r.listingId==id && r.status==='Confirmada' && a<r.checkout && b>r.checkin)||manualOverlap(id,a,b)}
 function amenityList(x){return (x.services&&x.services.length?x.services:['Wifi','Estacionamiento']).slice(0,8)}
 function availableListings(){return listings.filter(x=>x.active!==false)}
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)}
@@ -146,10 +150,28 @@ function confirmBooking(id){
 function reservationRow(r){return `<div class="row"><span><b>${r.guest}</b><br><small class="muted">${r.listingName} · ${fmt(r.checkin)} → ${fmt(r.checkout)} · ${r.guests} huésped(es)</small></span><span class="reservation-actions"><b>${money(r.total)}</b><br><span class="tag">${r.status}</span><button class="tiny secondary" onclick="reservationDetail(${r.id})">Ver detalle</button></span></div>`}
 function reservationDetail(id){
  let r=reservations.find(v=>v.id==id);if(!r)return;
- A.innerHTML=`<section class="form"><span class="back" onclick="ownerReservations()">← Reservas</span><h1>Detalle de reserva</h1><div class="booking-summary"><b>${r.listingName}</b><p>Código: ${bookingCode(r.id)}</p><p>${fmt(r.checkin)} → ${fmt(r.checkout)} · ${r.nights} noche(s)</p><h3>${money(r.total)}</h3></div><h3>Huésped</h3><p><b>${r.guest}</b><br>${r.email}<br>${r.phone}<br>${r.guests} huésped(es)</p><p><span class="tag">${r.status}</span></p></section>`;scrollTo(0,0)
+ let displayName=(r.guest||'Huésped').split(' ');displayName=displayName[0]+(displayName[1]?' '+displayName[1][0]+'.':'');
+ A.innerHTML=`<section class="form"><span class="back" onclick="ownerReservations()">← Reservas</span><h1>Detalle de reserva</h1><div class="booking-summary"><b>${r.listingName}</b><p>Código: ${bookingCode(r.id)}</p><p>${fmt(r.checkin)} → ${fmt(r.checkout)} · ${r.nights} noche(s)</p><h3>${money(r.total)}</h3></div><h3>Huésped</h3><p><b>${displayName}</b><br>${r.guests} huésped(es)</p><div class="privacy-note"><b>Datos protegidos por Finde</b><p>El correo y teléfono del huésped son administrados por Finde y no se muestran al propietario.</p></div><p><span class="tag">${r.status}</span></p></section>`;scrollTo(0,0)
 }
 function ownerReservations(){A.innerHTML=`<section class="panel"><div class="dash">${ownerNav()}<div><h1>Reservas</h1><p class="muted">Reservas creadas desde el flujo turista.</p><div class="box">${reservations.length?reservations.slice().reverse().map(reservationRow).join(''):'<p class="muted">No hay reservas todavía.</p>'}</div></div></div></section>`;scrollTo(0,0)}
-function ownerCalendar(){let rs=reservations.filter(r=>r.status==='Confirmada').slice().sort((a,b)=>a.checkin.localeCompare(b.checkin));A.innerHTML=`<section class="panel"><div class="dash">${ownerNav()}<div><h1>Calendario y disponibilidad</h1><p class="muted">Cada reserva confirmada bloquea automáticamente las noches entre entrada y salida.</p><div class="box">${rs.length?rs.map(r=>`<div class="calendar-booking"><b>${r.listingName}</b><span>${fmt(r.checkin)} → ${fmt(r.checkout)}</span><span>${r.guest}</span><span class="tag">Ocupado</span></div>`).join(''):'<p class="muted">No hay fechas bloqueadas todavía.</p>'}</div></div></div></section>`;scrollTo(0,0)}
+function ownerCalendar(){
+ let rs=reservations.filter(r=>r.status==='Confirmada').slice().sort((a,b)=>a.checkin.localeCompare(b.checkin));
+ A.innerHTML=`<section class="panel"><div class="dash">${ownerNav()}<div><h1>Calendario y disponibilidad</h1><p class="muted">Las reservas Finde se bloquean automáticamente. También puedes bloquear fechas ocupadas por otros motivos.</p>
+ <div class="box owner-block-form"><h2>Bloquear fechas manualmente</h2><div class="block-grid"><label>Alojamiento<select id="blockListing">${listings.map(x=>`<option value="${x.id}">${x.name}</option>`).join('')}</select></label><label>Desde<input type="date" id="blockFrom"></label><label>Hasta<input type="date" id="blockTo"></label><button onclick="addOwnerBlock()">Bloquear fechas</button></div><p class="muted">Estas fechas dejarán de estar disponibles inmediatamente en la búsqueda pública.</p></div>
+ <div class="box"><h2>Reservas Finde</h2>${rs.length?rs.map(r=>`<div class="calendar-booking"><b>${r.listingName}</b><span>${fmt(r.checkin)} → ${fmt(r.checkout)}</span><span>${r.guest.split(' ')[0]}</span><span class="tag">Reservado por Finde</span></div>`).join(''):'<p class="muted">No hay reservas confirmadas.</p>'}</div>
+ <div class="box"><h2>Bloqueos del propietario</h2>${ownerBlocks.length?ownerBlocks.slice().sort((a,b)=>a.checkin.localeCompare(b.checkin)).map(v=>`<div class="calendar-booking"><b>${v.listingName}</b><span>${fmt(v.checkin)} → ${fmt(v.checkout)}</span><span>Bloqueo manual</span><span><button class="tiny danger" onclick="removeOwnerBlock(${v.id})">Desbloquear</button></span></div>`).join(''):'<p class="muted">No has bloqueado fechas manualmente.</p>'}</div>
+ </div></div></section>`;scrollTo(0,0)
+}
+function addOwnerBlock(){
+ let listingId=Number(document.getElementById('blockListing').value),a=document.getElementById('blockFrom').value,b=document.getElementById('blockTo').value,x=listings.find(v=>v.id==listingId);
+ if(!a||!b){alert('Selecciona fecha desde y hasta.');return}
+ if(b<=a){alert('La fecha final debe ser posterior a la inicial.');return}
+ if(reservations.some(r=>r.listingId==listingId&&r.status==='Confirmada'&&a<r.checkout&&b>r.checkin)){alert('Ese período ya contiene una reserva confirmada por Finde.');return}
+ if(manualOverlap(listingId,a,b)){alert('Ese período ya está bloqueado.');return}
+ ownerBlocks.push({id:Date.now(),listingId,listingName:x.name,checkin:a,checkout:b});saveOwnerBlocks();ownerCalendar()
+}
+function removeOwnerBlock(id){ownerBlocks=ownerBlocks.filter(v=>v.id!=id);saveOwnerBlocks();ownerCalendar()}
+
 function ownerIncome(){let rs=reservations.filter(r=>r.status==='Confirmada'),gross=rs.reduce((a,r)=>a+r.total,0),fee=Math.round(gross*.10),net=gross-fee;A.innerHTML=`<section class="panel"><div class="dash">${ownerNav()}<div><h1>Ingresos</h1><p class="muted">Cálculo demostrativo. La comisión todavía no representa un cobro real.</p><div class="stats"><div class="stat">Reservas<b>${rs.length}</b></div><div class="stat">Ventas<b>${money(gross)}</b></div><div class="stat">Comisión demo 10%<b>${money(fee)}</b></div><div class="stat">A recibir<b>${money(net)}</b></div></div><div class="box"><h2>Movimientos</h2>${rs.length?rs.slice().reverse().map(r=>`<div class="row"><span><b>${r.listingName}</b><br><small class="muted">${r.guest} · ${fmt(r.checkin)}</small></span><span><b>${money(r.total)}</b><br><small class="muted">Neto demo ${money(Math.round(r.total*.9))}</small></span></div>`).join(''):'<p class="muted">Aún no hay movimientos.</p>'}</div></div></div></section>`;scrollTo(0,0)}
 
 
