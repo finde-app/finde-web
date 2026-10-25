@@ -1,3 +1,7 @@
+# Finde V14 — Corrección selector de destino
+
+Versión acumulativa sobre V13. Corrige la selección de destinos (por ejemplo Pucón) para permitir continuar con Entrada, Salida, Huéspedes y Buscar. Conserva el panel propietario y el centro de control administrador de V13.
+
 # Finde V13 — Centro de Control Administrador
 
 Versión acumulativa sobre V12. Conserva el flujo turista y el portal propietario.
