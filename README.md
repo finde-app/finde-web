@@ -1,21 +1,21 @@
-# Finde V14 — Corrección selector de destino
+# Finde V15 — Alojamientos + Experiencias
 
-Versión acumulativa sobre V13. Corrige la selección de destinos (por ejemplo Pucón) para permitir continuar con Entrada, Salida, Huéspedes y Buscar. Conserva el panel propietario y el centro de control administrador de V13.
+Versión acumulativa construida sobre V14 estable.
 
-# Finde V13 — Centro de Control Administrador
+## Se conserva
+- Flujo completo de alojamientos de V14.
+- Selector de destinos corregido.
+- Portal propietario.
+- Panel Administración.
 
-Versión acumulativa sobre V12. Conserva el flujo turista y el portal propietario.
+## Nuevo en V15
+- Menú público Experiencias.
+- Buscador de experiencias por destino, fecha y personas.
+- Cuatro experiencias demo en Pucón: rafting, cabalgata, trekking y kayak.
+- Ficha de experiencia con prestador, duración, precio, requisitos, inclusiones y cancelación.
+- Reserva demostrativa de experiencias.
+- Código FX para reservas turísticas.
+- Reservas de experiencias visibles desde Administración > Experiencias.
+- Datos guardados localmente en localStorage.
 
-## Panel Administrador
-- Resumen operativo conectado a reservas, alojamientos, pagos e incidencias.
-- Alojamientos: buscar, ver, aprobar, pausar y rechazar.
-- Propietarios: ficha y resumen de operación.
-- Reservas: detalle y cambio de estado.
-- Clientes: historial consolidado desde reservas.
-- Pagos: comisión Finde, monto del propietario y control pendiente/transferido.
-- Calendario general.
-- Reportes comerciales.
-- Configuración.
-- Incidencias: crear, gestionar y resolver.
-
-Los cambios de administración se conservan en localStorage. Sigue siendo una maqueta: no hay backend, autenticación, correo ni cobros reales.
+Sigue siendo una maqueta estática: no hay backend, pagos ni autenticación real.
