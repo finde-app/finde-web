@@ -45,3 +45,10 @@
 .block-grid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px;align-items:end}
 .block-grid label{margin:0}.block-grid select,.block-grid input{width:100%}
 @media(max-width:850px){.block-grid{grid-template-columns:1fr}.block-grid button{width:100%}}
+
+/* V18 — Findito aparece solamente en hitos positivos */
+.findito-celebration{display:flex;align-items:center;gap:18px;margin:0 0 22px;padding:14px 16px;border-radius:18px;background:#fffaf0;overflow:hidden}
+.findito-celebration img{width:120px;height:120px;object-fit:cover;object-position:7% 50%;border-radius:16px}
+.findito-celebration h2{margin:4px 0 0}
+.findito-label{font-size:12px;font-weight:800;letter-spacing:.08em;color:#a65b00}
+@media(max-width:600px){.findito-celebration{align-items:flex-start}.findito-celebration img{width:88px;height:88px}}
