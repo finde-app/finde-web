@@ -1,4 +1,4 @@
-# Finde V19 — Contrato de Reserva e Intermediación Turística
+# Finde V19 — Contrato de Servicio de Intermediación Turística
 **BORRADOR sujeto a revisión jurídica antes de activar pagos reales. Versión 0.1 (2026-11-06).**
 
 ## Partes y rol de Finde
@@ -26,7 +26,7 @@ Antes del pago, el cliente verá un resumen con el servicio, el prestador, las f
 ## Obligaciones
 El prestador debe respetar la oferta y mantener la disponibilidad actualizada. El cliente debe proporcionar información correcta, respetar la capacidad contratada y cumplir las reglas razonables previamente informadas. Finde facilitará los mecanismos de reserva, confirmación y atención en los términos comunicados.
 
-## Cancelación, retracto, cambios y devoluciones
+## Cambios en la reserva y derechos del cliente
 Se aplicará la política de cancelación mostrada al cliente antes del pago, sin perjuicio de los derechos legales que correspondan. El derecho a retracto se regirá por la Ley 19.496 y el Decreto 52; cualquier exclusión de servicios solo podrá aplicarse cuando se haya comunicado expresamente en la forma legalmente exigida antes de contratar. Si el prestador incumple o cancela, se atenderán los derechos del consumidor conforme a la normativa aplicable.
 
 ## Atención y reclamos
@@ -36,7 +36,7 @@ El cliente podrá contactar a Finde mediante [correo/canal de atención]. La pla
 Se tratarán los datos necesarios para la reserva y su gestión conforme a la Política de Privacidad vigente y la legislación aplicable. Los prestadores solo accederán a los datos estrictamente necesarios para ejecutar el servicio; no se les entregará automáticamente RUT, teléfono ni email de turistas.
 
 ## Aceptación electrónica
-El cliente tendrá acceso al contrato antes del pago, con opción de descargarlo o imprimirlo. La aceptación requiere marcar voluntariamente una casilla inicialmente desmarcada. Se conservarán código de reserva, versión del contrato, texto íntegro o hash verificable con copia inmutable, fecha y hora de aceptación, y registro de envío de la confirmación. Ninguna casilla premarcada ni aceptación implícita.
+El cliente tendrá acceso al contrato antes del pago, con opción de descargarlo o imprimirlo. La aceptación requiere marcar voluntariamente una casilla inicialmente desmarcada, con el texto exacto: «He leído y acepto el contrato de Servicio de Intermediación Turística.» Se conservarán código de reserva, versión del contrato, texto íntegro o hash verificable con copia inmutable, fecha y hora de aceptación, y registro de envío de la confirmación. Ninguna casilla premarcada ni aceptación implícita.
 
 ## Protección del consumidor
 Ninguna estipulación limita los derechos irrenunciables establecidos por la Ley 19.496.
@@ -44,7 +44,7 @@ Ninguna estipulación limita los derechos irrenunciables establecidos por la Ley
 ---
 ## Requisitos de implementación (pendientes)
 1. Generar contrato específico con datos reales de la reserva y del prestador, antes del pago.
-2. Mostrar resumen y enlace para visualizar/descargar contrato y política de cancelación; casilla obligatoria sin marcar por defecto.
+2. Mostrar resumen y enlace para visualizar/descargar el contrato; casilla obligatoria sin marcar por defecto. No destacar las condiciones de cancelación como título ni en el texto de aceptación, pero mantener su información clara, accesible y previa al pago conforme a la normativa.
 3. Validar aceptación en backend; registrar versión, contenido inmutable y marca temporal asociada a reserva.
 4. Bloquear inicio de pago si no hay aceptación válida.
 5. Enviar confirmación escrita y contrato por correo al confirmar contratación.
