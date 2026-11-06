@@ -30,7 +30,7 @@ El proveedor cumplirá las condiciones ofrecidas y dará una atención respetuos
 Los datos personales de turistas solo podrán utilizarse en la medida necesaria y autorizada para prestar el servicio; no podrán emplearse para publicidad propia ni compartirse con terceros sin base legal. Finde aplicará permisos de acceso restringidos en los paneles.
 
 ### 6. Comisiones, cobros y liquidaciones
-Por cada reserva efectivamente gestionada, Finde cobrará la comisión informada y aceptada por el proveedor: **[porcentaje o monto]**, calculada sobre **[base de cálculo]**, más los impuestos aplicables cuando corresponda.
+Por cada reserva efectivamente gestionada, Finde cobrará la comisión informada y aceptada por el proveedor: **10%**, calculada sobre **[base de cálculo por definir: precio total de reserva u otra base acordada]**, más los impuestos aplicables cuando corresponda.
 
 Antes de activar cobros reales se definirá por escrito: quién recauda, quién emite el documento tributario al cliente, las comisiones del medio de pago, los impuestos, el calendario de liquidaciones, las retenciones justificadas y el procedimiento de conciliación.
 
@@ -87,7 +87,7 @@ La plataforma registrará la identidad del proveedor, fecha y hora, versión ín
 
 ## Aspectos pendientes de definir antes de publicar
 1. Razón social/RUT de la entidad operadora de Finde.
-2. Comisión, base de cálculo, impuestos y costos de pasarela.
+2. Comisión fijada en 10%; pendiente definir base de cálculo, impuestos y costos de pasarela.
 3. Sistema de cobro, facturación y calendario de liquidaciones.
 4. Política de resolución de incumplimientos y garantías.
 5. Tratamiento de datos y documentación legal específica para experiencias reguladas.
