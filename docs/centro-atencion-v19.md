@@ -34,3 +34,14 @@ Ofrecer a turistas, propietarios y proveedores de experiencias un canal de recla
 - Tratamiento de casos anónimos, denuncias graves y emergencias.
 - Política de conservación y eliminación de datos, y textos legales.
 - Diseño y construcción de formulario, base de datos, API, panel administrativo y notificaciones.
+
+## Reclamo desde una reserva
+- En **Mis reservas**, cada reserva tendrá la acción **Presentar reclamo**.
+- Al abrir el formulario desde una reserva, el sistema asociará automáticamente el identificador de reserva, el alojamiento o experiencia, el proveedor y las fechas pertinentes, sin pedir que el turista vuelva a ingresarlos.
+- El turista seleccionará el motivo, describirá el problema y podrá adjuntar evidencias; recibirá un número de caso y podrá seguir su estado desde **Mis reclamos**.
+- La administración verá el caso vinculado a la reserva y podrá comunicarse con las partes, solicitar antecedentes, documentar decisiones y gestionar eventuales reembolsos conforme al operador de pagos y la normativa aplicable.
+- El proveedor solo recibirá los antecedentes estrictamente necesarios para responder, sin exponer datos personales de contacto del turista.
+- La creación del reclamo no ejecutará automáticamente un reembolso, una retención o una sanción; esas acciones requieren revisión y autorización.
+- Considerar reclamos sobre reservas finalizadas y canceladas, además de las próximas o en curso.
+
+**Implementación pendiente:** botón en la vista de reservas, formulario precargado, persistencia en base de datos, permisos, notificaciones y seguimiento.
