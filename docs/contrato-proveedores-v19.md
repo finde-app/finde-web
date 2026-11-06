@@ -36,6 +36,19 @@ Antes de activar cobros reales se definirá por escrito: quién recauda, quién 
 
 Finde entregará un detalle de las reservas, descuentos autorizados y montos a liquidar. No podrá cambiar unilateralmente comisiones sobre reservas ya confirmadas.
 
+
+
+### 6 bis. Liquidaciones automáticas y suspensión justificada
+Las partes acuerdan que el precio publicado al turista incluye la comisión de Finde: del importe efectivamente cobrado, corresponde un 90% al proveedor y un 10% a Finde, sin recargo adicional por comisión al cliente. Los costos de procesamiento e impuestos se regularán expresamente antes de operar.
+
+La liquidación del importe del proveedor se efectuará automáticamente mediante un operador de pagos compatible, de acuerdo con los plazos de liberación informados y aceptados. **La disponibilidad real de retenciones y transferencias automáticas está condicionada al contrato y a las capacidades del operador de pagos elegido.**
+
+Ante indicios razonables y documentados de incumplimiento del servicio, fraude, doble reserva, reclamo relevante o disputa de pago, Finde podrá solicitar la suspensión temporal de una liquidación **todavía no ejecutada**, en la medida permitida por la ley, por el contrato y por el operador de pagos. Se notificará al proveedor el motivo, el importe afectado, los antecedentes disponibles, el procedimiento para presentar descargos y el plazo de revisión que se determine en las condiciones definitivas. La retención será proporcional y no se utilizará como multa automática.
+
+Una vez revisado el caso, Finde gestionará la liberación del saldo, la devolución al cliente u otra solución que corresponda legal y contractualmente. Si el dinero ya fue transferido al proveedor, Finde no podrá congelarlo retroactivamente; deberá aplicar los procedimientos de reversa, reembolso o cobro que correspondan.
+
+**Pendiente de definir antes de producción:** plazo normal de liberación tras el servicio, duración máxima de revisión, responsable de resolver controversias, procedimiento de apelación, condiciones de reembolso, distribución de costos de la pasarela y confirmación contractual del proveedor de pagos.
+
 ### 7. Cambios en reservas y solución de problemas
 Las condiciones aplicables a cambios, desistimientos y devoluciones se informarán antes de cada contratación con el turista, de acuerdo con la legislación chilena. El proveedor colaborará en la solución de problemas y asumirá los costos que legal o contractualmente le correspondan cuando incumpla lo ofrecido.
 
@@ -88,7 +101,7 @@ La plataforma registrará la identidad del proveedor, fecha y hora, versión ín
 ## Aspectos pendientes de definir antes de publicar
 1. Razón social/RUT de la entidad operadora de Finde.
 2. Comisión fijada en 10% del precio final publicado y cobrado al cliente, descontada de ese monto; pendiente definir tratamiento de impuestos y costos de pasarela.
-3. Sistema de cobro, facturación y calendario de liquidaciones.
+3. Sistema de cobro, facturación, calendario de liquidaciones, retenciones autorizadas y plazos de revisión.
 4. Política de resolución de incumplimientos y garantías.
 5. Tratamiento de datos y documentación legal específica para experiencias reguladas.
 6. Revisión por abogado chileno antes de su uso comercial.
