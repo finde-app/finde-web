@@ -1,0 +1,6 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/omouxppn/finde-v19-preview/
+    - /bin/mkdir -p "$DEPLOYPATH"
+    - /bin/cp index.html app.js styles.css provider-interest.js findito.png "$DEPLOYPATH"
