@@ -1,0 +1,18 @@
+/* Captación de proveedores — prototipo V19. Los datos se guardan SOLO en este navegador. */
+const findeProspectKey='findeProviderProspectsV19';
+function findeProspects(){try{return JSON.parse(localStorage.getItem(findeProspectKey)||'[]')}catch{return []}}
+function findeSafe(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function providerInterest(){
+ A.innerHTML=`<section class="form"><span class="back" onclick="home()">← Volver a Finde</span><h1>Publica con Finde</h1><p>¿Tienes un alojamiento u ofreces experiencias turísticas? Déjanos tus datos para conversar sobre cómo sumarte.</p><div class="box"><b>Formulario de demostración</b><p class="muted">Este formulario todavía NO envía tus datos a Finde: se guardan solo en este navegador. No lo utilices para una convocatoria pública hasta conectar el servidor y publicar el aviso de privacidad.</p></div><form id="providerInterestForm" onsubmit="saveProviderInterest(event)"><label>Nombre de contacto</label><input name="name" maxlength="120" required autocomplete="name"><label>Correo electrónico</label><input name="email" type="email" maxlength="180" required autocomplete="email"><label>Tipo de servicio</label><select name="kind" required><option value="">Selecciona una opción</option><option>Alojamiento</option><option>Experiencia turística</option></select><label>Nombre del alojamiento o servicio</label><input name="business" maxlength="160" required><label>Comuna</label><input name="commune" maxlength="100" required><label>Comentario (opcional)</label><textarea name="notes" rows="3" maxlength="500" placeholder="Cuéntanos brevemente sobre tu servicio"></textarea><label class="terms"><input name="consent" type="checkbox" required> Entiendo que esta es una demostración y que mis datos solo se guardarán en este navegador.</label><button type="submit">Guardar solicitud de prueba</button></form></section>`;scrollTo(0,0)
+}
+function saveProviderInterest(e){
+ e.preventDefault();const f=e.currentTarget,d=new FormData(f),email=String(d.get('email')||'').trim();
+ if(!validEmail(email)||!f.reportValidity())return;
+ const entry={id:Date.now(),name:String(d.get('name')).trim(),email,kind:String(d.get('kind')),business:String(d.get('business')).trim(),commune:String(d.get('commune')).trim(),notes:String(d.get('notes')||'').trim(),status:'Pendiente',created:new Date().toISOString()};
+ const all=findeProspects();all.push(entry);try{localStorage.setItem(findeProspectKey,JSON.stringify(all))}catch{alert('No se pudo guardar la solicitud en este navegador.');return}
+ A.innerHTML=`<section class="form"><h1>Solicitud de prueba guardada</h1><p>Se registró en este navegador con el número <b>${entry.id}</b>. No se envió ningún correo ni se notificó a Finde.</p><button onclick="home()">Volver al inicio</button></section>`;scrollTo(0,0)
+}
+function adminProspects(){
+ const rows=findeProspects().slice().reverse();
+ adminShell('Interesados','Interesados en publicar','Solicitudes de prueba guardadas en este navegador; no provienen de un servidor.',`<div class="admin-card"><p class="muted">Demostración local. No usar como registro centralizado ni como sistema de captación público.</p>${rows.length?rows.map(p=>`<div class="admin-table-row"><span><b>${findeSafe(p.name)}</b><small>${findeSafe(p.email)}</small></span><span><b>${findeSafe(p.business)}</b><small>${findeSafe(p.kind)} · ${findeSafe(p.commune)}</small></span><span><small>${findeSafe(p.notes)}</small></span><span class="tag">${findeSafe(p.status)}</span></div>`).join(''):'<p class="muted">Todavía no hay solicitudes de prueba.</p>'}</div>`)
+}
