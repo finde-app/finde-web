@@ -190,7 +190,7 @@ function setReservationStatus(id,status){let r=reservations.find(x=>x.id==id);if
 function setListingReview(id,status){let x=listings.find(v=>v.id==id);if(!x)return;x.adminStatus=status;if(status==='Aprobado')x.active=true;if(status==='Rechazado'||status==='Pausado')x.active=false;save();adminListings()}
 function adminStatus(x){return x.adminStatus||(x.active===false?'Pausado':'Aprobado')}
 function adminLogin(){A.innerHTML=`<section class="login admin-login"><span class="back" onclick="home()">← Volver a Finde</span><div class="admin-badge">Administración Finde</div><h1>Centro de control</h1><p class="muted">Gestiona la operación completa de Finde.</p><label>Correo administrador</label><input value="admin@finde.cl"><label>Contraseña</label><input type="password" value="123456"><button style="width:100%" onclick="adminDashboard()">Ingresar a la demo</button><p class="muted">Acceso demostrativo. La autenticación real se implementará con el backend.</p></section>`;scrollTo(0,0)}
-function adminNav(active='Resumen'){let items=[['Resumen','adminDashboard()'],['Alojamientos','adminListings()'],['Experiencias','adminExperienceReservations()'],['Propietarios','adminOwners()'],['Interesados','adminProspects()'],['Reservas','adminReservations()'],['Clientes','adminCustomers()'],['Pagos','adminPayments()'],['Calendario','adminCalendar()'],['Reportes','adminReports()'],['Configuración','adminSettings()'],['Incidencias','adminIncidents()'],['Datos ficticios','adminSampleData()']];return `<aside class="admin-sidebar"><div class="admin-logo">Finde <small>ADMIN</small></div>${items.map(i=>`<button class="${active==i[0]?'active':''}" onclick="${i[1]}">${i[0]}</button>`).join('')}<button onclick="home()">Salir</button></aside>`}
+function adminNav(active='Resumen'){let items=[['Resumen','adminDashboard()'],['Alojamientos','adminListings()'],['Experiencias','adminExperienceReservations()'],['Propietarios','adminOwners()'],['Interesados','adminProspects()'],['Reservas','adminReservations()'],['Clientes','adminCustomers()'],['Pagos','adminPayments()'],['Calendario','adminCalendar()'],['Reportes','adminReports()'],['Configuración','adminSettings()'],['Incidencias','adminIncidents()']];return `<aside class="admin-sidebar"><div class="admin-logo">Finde <small>ADMIN</small></div>${items.map(i=>`<button class="${active==i[0]?'active':''}" onclick="${i[1]}">${i[0]}</button>`).join('')}<button onclick="home()">Salir</button></aside>`}
 function adminShell(active,title,subtitle,content){A.innerHTML=`<section class="admin-panel"><div class="admin-layout">${adminNav(active)}<div class="admin-content"><div class="admin-head"><div><small>PANEL FINDE</small><h1>${title}</h1><p class="muted">${subtitle}</p></div><button class="outline" onclick="home()">Ver sitio público</button></div>${content}</div></div></section>`;scrollTo(0,0)}
 function adminMetrics(){let rs=reservations.filter(r=>r.status!=='Cancelada'&&r.status!=='Reembolsada'),gross=rs.reduce((a,r)=>a+r.total,0),fee=Math.round(gross*.10),active=availableListings().length,paid=rs.filter(r=>paymentStatus(r.id)==='Transferido').reduce((a,r)=>a+Math.round(r.total*.9),0);return {rs,gross,fee,net:gross-fee,active,paid,pendingPay:gross-fee-paid}}
 function adminDashboard(){let m=adminMetrics(),pending=listings.filter(x=>adminStatus(x)==='Pendiente').length,open=adminIssues.filter(x=>x.status==='Abierta').length;adminShell('Resumen','Resumen','Estado general de la operación de Finde.',`<div class="admin-kpis"><div><small>Reservas</small><b>${m.rs.length}</b><span>activas</span></div><div><small>Ventas</small><b>${money(m.gross)}</b><span>volumen reservado</span></div><div><small>Comisión Finde</small><b>${money(m.fee)}</b><span>demo 10%</span></div><div><small>Por pagar</small><b>${money(m.pendingPay)}</b><span>a propietarios</span></div><div><small>Alojamientos</small><b>${m.active}</b><span>activos</span></div></div><div class="admin-grid"><div class="admin-card"><h2>Reservas recientes</h2>${m.rs.length?m.rs.slice().reverse().slice(0,5).map(reservationRow).join(''):'<p class="muted">Aún no hay reservas.</p>'}</div><div class="admin-card"><h2>Pendientes</h2><div class="task"><b>${pending}</b><span>Alojamientos por revisar</span></div><div class="task"><b>${m.rs.filter(r=>paymentStatus(r.id)!=='Transferido').length}</b><span>Pagos a propietarios</span></div><div class="task"><b>${open}</b><span>Incidencias abiertas</span></div></div></div>`)}
@@ -232,59 +232,3 @@ function confirmExperience(id){let x=experiences.find(v=>v.id==id),name=document
 function adminExperienceReservations(){adminShell('Experiencias','Reservas de experiencias','Reservas de tours y actividades realizadas desde Finde.',`<div class="admin-card">${experienceReservations.length?experienceReservations.slice().reverse().map(r=>`<div class="admin-table-row"><span><b>${expCode(r.id)}</b><small>${r.guest}</small></span><span><b>${r.experienceName}</b><small>${r.provider} · ${fmt(r.date)}</small></span><span><b>${money(r.total)}</b><small>${r.people} persona(s)</small></span><span class="tag">${r.status}</span></div>`).join(''):'<p class="muted">Todavía no hay reservas de experiencias.</p>'}</div>`)}
 
 home();
-
-
-function adminSampleData(section = 'Experiencias') {
-  const names = ['Pedro Lagos', 'Ana Fuentes', 'Claudia Vera', 'Nataly Soto', 'Camila Ríos', 'Diego Paredes', 'Valentina Mora', 'Sebastián Vidal', 'Daniela Ruiz', 'Martín Silva', 'Paula Castillo', 'Ignacio Torres', 'Fernanda Díaz', 'Andrés Leiva', 'Catalina Reyes'];
-  const places = [
-    ['Pucón', 'Rafting en el Trancura', 'Cabañas Los Coigües', 'Cambio de horario'],
-    ['Villarrica', 'Paseo en kayak', 'Refugio del Lago', 'Consulta sobre el ingreso'],
-    ['Puerto Varas', 'Ruta del lago Llanquihue', 'Casa Los Volcanes', 'Actualización de huéspedes'],
-    ['Frutillar', 'Recorrido patrimonial', 'Loft del Muelle', 'Solicitud de comprobante'],
-    ['Castro', 'Visita a los palafitos', 'Hostal La Marea', 'Cambio de habitación'],
-    ['Dalcahue', 'Taller de lana chilota', 'Cabaña Los Arrayanes', 'Consulta de equipamiento'],
-    ['Cochamó', 'Caminata guiada', 'Refugio Río Claro', 'Ajuste de fecha'],
-    ['Valdivia', 'Navegación por los ríos', 'Casa Los Canelos', 'Consulta de transferencia'],
-    ['Niebla', 'Ruta de los fuertes', 'Posada Brisa Marina', 'Revisión de instrucciones'],
-    ['Pichilemu', 'Clase de surf', 'Cabañas Punta de Lobos', 'Consulta por estacionamiento'],
-    ['Santa Cruz', 'Recorrido por viñedos', 'Casa Parronal', 'Actualización de contacto'],
-    ['Vicuña', 'Observación astronómica', 'Refugio Elqui', 'Cambio de hora de llegada'],
-    ['La Serena', 'Paseo costero en bicicleta', 'Departamento Faro Norte', 'Consulta de accesibilidad'],
-    ['Olmué', 'Senderismo en La Campana', 'Cabaña El Peumo', 'Revisión de tarifa'],
-    ['Punta Arenas', 'Caminata frente al estrecho', 'Hostal Viento Sur', 'Consulta sobre equipaje']
-  ];
-  const today = new Date();
-  const date = offset => new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + offset)).toISOString().slice(0, 10);
-  const cases = places.map(([commune, experience, property, incident], i) => {
-    const nights = 2 + i % 4;
-    const total = nights * (45000 + i * 3500);
-    const fee = Math.round(total * 0.1);
-    const startOffset = i % 3 === 0 ? -7 - i : i % 3 === 1 ? 2 + i * 3 : -1;
-    return {
-      code: `M-${String(i + 1).padStart(3, '0')}`, commune, experience, property, incident,
-      owner: names[i], guest: names[(i + 4) % names.length], prospect: names[(i + 8) % names.length],
-      start: date(startOffset), end: date(startOffset + nights), nights, total, fee,
-      bookingStatus: ['Finalizada', 'Confirmada', 'En curso'][i % 3],
-      paymentStatus: i % 3 === 0 ? 'Transferido' : 'Pendiente transferencia',
-      prospectStatus: ['En revisión', 'Pendiente', 'Aprobado'][i % 3],
-      incidentStatus: ['Abierta', 'En revisión', 'Resuelta'][i % 3]
-    };
-  });
-  const views = {
-    'Experiencias': [['Actividad', 'Comuna', 'Anfitrión', 'Precio por persona'], (c, i) => [c.experience, c.commune, c.owner, money(18000 + i * 2500)]],
-    'Anfitriones': [['Nombre', 'Alojamiento', 'Comuna', 'Reserva asociada'], c => [c.owner, c.property, c.commune, c.code]],
-    'Interesados': [['Contacto', 'Servicio', 'Comuna', 'Estado'], c => [c.prospect, c.experience, c.commune, c.prospectStatus]],
-    'Reservas': [['Código', 'Cliente', 'Alojamiento', 'Estado', 'Total'], c => [c.code, c.guest, c.property, c.bookingStatus, money(c.total)]],
-    'Clientes': [['Nombre', 'Correo ficticio', 'Reserva', 'Total reservado'], (c, i) => [c.guest, `cliente${i + 1}@example.com`, c.code, money(c.total)]],
-    'Pagos': [['Reserva', 'Total', 'Comisión', 'Monto al anfitrión', 'Estado'], c => [c.code, money(c.total), money(c.fee), money(c.total - c.fee), c.paymentStatus]],
-    'Calendario': [['Entrada', 'Salida', 'Alojamiento', 'Cliente'], c => [c.start, c.end, c.property, c.guest]],
-    'Reportes': [['Destino', 'Reservas', 'Noches', 'Ventas', 'Comisión'], c => [c.commune, 1, c.nights, money(c.total), money(c.fee)]],
-    'Incidencias': [['Código', 'Asunto', 'Reserva', 'Estado'], c => [`INC-${c.code}`, c.incident, c.code, c.incidentStatus]]
-  };
-  const [headings, row] = views[section];
-  const tabs = Object.keys(views).map(name => `<button type="button" class="${name === section ? '' : 'secondary'}" aria-pressed="${name === section}" onclick="adminSampleData('${name}')">${name}</button>`).join('');
-  const rows = cases.map((entry, i) => `<tr>${row(entry, i).map(value => `<td style="padding:8px 12px;text-align:left">${esc(String(value))}</td>`).join('')}</tr>`).join('');
-  const headers = headings.map(label => `<th scope="col" style="padding:8px 12px;text-align:left">${label}</th>`).join('');
-  const totals = section === 'Reportes' ? `<p><b>${cases.length} reservas · ${cases.reduce((sum, c) => sum + c.nights, 0)} noches · ${money(cases.reduce((sum, c) => sum + c.total, 0))} en ventas simuladas</b></p>` : '';
-  adminShell('Datos ficticios', `Datos ficticios · ${section}`, 'Casos de muestra para explorar el panel de Administración.', `<div class="admin-card"><div class="admin-actions" style="flex-wrap:wrap;gap:8px;margin-bottom:16px">${tabs}</div>${totals}<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div></div>`);
-}
