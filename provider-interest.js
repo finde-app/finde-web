@@ -19,7 +19,38 @@ async function saveProviderInterest(e){
   A.innerHTML=`<section class="form"><h1>Solicitud de prueba registrada</h1><p>El servidor confirmó el registro en MariaDB con el número <b>${findeSafe(data.id)}</b>.</p><p class="muted">No se envió ningún correo ni se notificó automáticamente a Finde. La revisión de solicitudes desde administración todavía está pendiente.</p><button onclick="home()">Volver al inicio</button></section>`;scrollTo(0,0);
  }catch(err){status.textContent='No se guardó la solicitud: '+String(err.message||'Error de conexión');btn.disabled=false;btn.textContent='Reintentar envío';}
 }
+/* Administración real: acceso y consultas protegidos por sesión del servidor. */
+async function findeAdminRequest(path,options={}){
+ const response=await fetch('/api/admin/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});
+ let data={};try{data=await response.json()}catch{}
+ if(!response.ok)throw new Error(data.error||'No se pudo completar la operación.');
+ return data;
+}
 function adminProspects(){
- const rows=findeProspects().slice().reverse();
- adminShell('Interesados','Interesados en publicar','La consulta de solicitudes reales desde MariaDB todavía no está habilitada en este panel.',`<div class="admin-card"><p class="muted">Los registros enviados al servidor NO aparecen aquí. Esta sección solo muestra datos antiguos de demostración almacenados en este navegador. Para revisar registros de prueba utiliza phpMyAdmin con acceso autorizado.</p>${rows.length?rows.map(p=>`<div class="admin-table-row"><span><b>${findeSafe(p.name)}</b><small>${findeSafe(p.email)}</small></span><span><b>${findeSafe(p.business)}</b><small>${findeSafe(p.kind)} · ${findeSafe(p.commune)}</small></span><span><small>${findeSafe(p.notes)}</small></span><span class="tag">${findeSafe(p.status)}</span></div>`).join(''):'<p class="muted">Sin registros antiguos de demostración.</p>'}</div>`)
+ adminShell('Interesados','Solicitudes de proveedores','Datos reales de la base de datos; acceso restringido.',`<div class="admin-card" id="findeAdminArea"><p>Verificando acceso seguro…</p></div>`);
+ findeLoadProspects();
+}
+async function findeLoadProspects(){
+ const area=document.getElementById('findeAdminArea');if(!area)return;
+ try{
+  const data=await findeAdminRequest('solicitudes');
+  if(!document.getElementById('findeAdminArea'))return;
+  const states=['pendiente','en_revision','aprobado','rechazado'];
+  area.innerHTML=`<div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap"><b>Solicitudes registradas: ${data.solicitudes.length}</b><button class="outline" onclick="findeAdminLogout()">Cerrar sesión segura</button></div>`+
+  (data.solicitudes.length?data.solicitudes.map(p=>`<div class="admin-card" style="margin:14px 0"><b>#${findeSafe(p.id)} — ${findeSafe(p.nombre_servicio)}</b><p>${findeSafe(p.nombre_contacto)} · ${findeSafe(p.correo)}</p><p>${findeSafe(p.tipo_servicio)} · ${findeSafe(p.comuna)}</p><p class="muted">${findeSafe(p.comentario||'Sin comentarios')}</p><label>Estado</label> <select id="findeEstado${Number(p.id)}">${states.map(st=>`<option value="${st}" ${st===p.estado?'selected':''}>${findeSafe(st.replace('_',' '))}</option>`).join('')}</select> <button onclick="findeSaveProspect(${Number(p.id)})">Guardar estado</button></div>`).join(''):'<p>No hay solicitudes todavía.</p>');
+ }catch(e){
+  area.innerHTML=`<h3>Acceso seguro</h3><p class="muted">Introduce la contraseña administrativa configurada en cPanel. No se guarda en el navegador.</p><form onsubmit="findeAdminLogin(event)"><label>Contraseña de administración</label><input id="findeAdminPassword" type="password" required autocomplete="current-password"><button type="submit">Entrar a solicitudes</button></form><p id="findeAdminMessage" role="status"></p>`;
+ }
+}
+async function findeAdminLogin(event){
+ event.preventDefault();const field=document.getElementById('findeAdminPassword'),msg=document.getElementById('findeAdminMessage');const password=field.value;field.value='';msg.textContent='Verificando…';
+ try{await findeAdminRequest('login',{method:'POST',body:JSON.stringify({password})});findeLoadProspects()}catch(e){msg.textContent=e.message}
+}
+async function findeSaveProspect(id){
+ const el=document.getElementById('findeEstado'+id);if(!el)return;
+ try{await findeAdminRequest('solicitudes/'+id,{method:'PATCH',body:JSON.stringify({estado:el.value})});findeLoadProspects()}catch(e){alert(e.message)}
+}
+async function findeAdminLogout(){
+ try{await findeAdminRequest('logout',{method:'POST',body:JSON.stringify({})})}catch{}
+ findeLoadProspects();
 }
