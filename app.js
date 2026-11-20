@@ -5,6 +5,50 @@ const seed=[
 {id:3,name:'Hotel Mirador',commune:'Puerto Varas',region:'Los Lagos',price:89000,cap:2,type:'Hotel',bedrooms:1,beds:1,services:['Wifi','Desayuno','Estacionamiento'],checkin:'15:00',checkout:'11:00',cancel:'Cancelación flexible hasta 48 horas antes.',img:'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80'},
 {id:4,name:'Cabaña Costa Sur',commune:'Pichilemu',region:"O'Higgins",price:59000,cap:4,type:'Cabaña',bedrooms:2,beds:3,services:['Wifi','Estacionamiento','Parrilla'],checkin:'15:00',checkout:'11:00',cancel:'Cancelación flexible hasta 48 horas antes.',img:'https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?auto=format&fit=crop&w=800&q=80'}];
 let listings=JSON.parse(localStorage.getItem('findeListings')||'null')||seed;
+const hostRegistrationExamples = [
+  ["Quebrada del Sol", "Putre", "Arica y Parinacota", 62000, 4],
+  ["Altiplano Claro", "Colchane", "Tarapacá", 58000, 4],
+  ["Patio del Desierto", "San Pedro de Atacama", "Antofagasta", 88000, 4],
+  ["Brisa de Caldera", "Caldera", "Atacama", 72000, 5],
+  ["Cielo de Elqui", "Vicuña", "Coquimbo", 69000, 4],
+  ["Sendero del Peumo", "Olmué", "Valparaíso", 75000, 5],
+  ["Cordillera Serena", "San José de Maipo", "Metropolitana de Santiago", 85000, 6],
+  ["Bosque de Colchagua", "Santa Cruz", "O’Higgins", 77000, 4],
+  ["Ribera del Maule", "Constitución", "Maule", 64000, 4],
+  ["Valle del Itata", "Quillón", "Ñuble", 60000, 5],
+  ["Mirador de Nahuelbuta", "Cañete", "Biobío", 65000, 4],
+  ["Lago entre Coigües", "Curacautín", "La Araucanía", 73000, 6],
+  ["Río de los Canelos", "Panguipulli", "Los Ríos", 76000, 5],
+  ["Bahía de Arrayanes", "Cochamó", "Los Lagos", 81000, 4],
+  ["Refugio del Baker", "Cochrane", "Aysén", 84000, 5]
+];
+const hostExampleVersionKey = 'findeHostExampleRegistrationsV1';
+if (!localStorage.getItem(hostExampleVersionKey)) {
+  const existingIds = new Set(listings.map(listing => listing.id));
+  const examples = hostRegistrationExamples.map(([name, commune, region, price, cap], index) => ({
+    id: 19001 + index,
+    name: 'Cabañas ' + name,
+    commune, region, price, cap,
+    type: 'Cabaña',
+    bedrooms: cap > 4 ? 3 : 2,
+    beds: cap > 4 ? 4 : 3,
+    services: ['Cocina', 'Estacionamiento', 'Calefacción'],
+    checkin: '15:00',
+    checkout: '11:00',
+    cancel: 'Cancelación flexible hasta 48 horas antes.',
+    description: 'Alojamiento ficticio registrado como borrador para la versión de pruebas de Findito.',
+    active: false,
+    adminStatus: 'Pendiente'
+  })).filter(listing => !existingIds.has(listing.id));
+  listings = [...listings, ...examples];
+  try {
+    save();
+    localStorage.setItem(hostExampleVersionKey, '1');
+  } catch {
+    // The examples can still be viewed if browser storage is full.
+  }
+}
+
 let reservations=JSON.parse(localStorage.getItem('findeReservations')||'[]');
 let ownerBlocks=JSON.parse(localStorage.getItem('findeOwnerBlocks')||'[]');
 function saveOwnerBlocks(){localStorage.setItem('findeOwnerBlocks',JSON.stringify(ownerBlocks))}
