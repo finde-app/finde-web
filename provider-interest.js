@@ -27,7 +27,7 @@ async function findeAdminRequest(path,options={}){
  return data;
 }
 function adminProspects(){
- adminShell('Interesados','Solicitudes de proveedores','Datos reales de la base de datos; acceso restringido.',`<div class="admin-card" id="findeAdminArea"><p>Verificando acceso seguro…</p></div>`);
+ adminShell('Interesados','Solicitudes de proveedores','Datos reales de la base de datos; acceso restringido.',`<div class="admin-card" id="findeAdminArea"><p>Verificando acceso seguro…</p></div>${findeExampleProspectRows()}`);
  findeLoadProspects();
 }
 async function findeLoadProspects(){
@@ -53,4 +53,13 @@ async function findeSaveProspect(id){
 async function findeAdminLogout(){
  try{await findeAdminRequest('logout',{method:'POST',body:JSON.stringify({})})}catch{}
  findeLoadProspects();
+}
+
+function findeExampleProspectRows(){
+ const states = ['Pendiente','En revisión','Aprobado'];
+ const rows = hostRegistrationExamples.map(([name,commune],i) => {
+  const contact = adminExampleNames[(i+8)%adminExampleNames.length];
+  return `<div class="admin-table-row"><span><b>${findeSafe(contact)}</b><small>interesado${i+1}@example.com</small></span><span><b>${findeSafe('Cabañas '+name)}</b><small>${findeSafe(commune)}</small></span><span class="tag">${states[i%states.length]}</span></div>`;
+ });
+ return `<div class="admin-card"><h2>Solicitudes ficticias</h2>${rows.join('')}</div>`;
 }
