@@ -80,7 +80,7 @@ let s={dest:'',a:null,b:null,ad:2,ni:0,cal:false,g:false,m:10,y:2026,sug:false};
 const money=n=>'$'+Number(n).toLocaleString('es-CL'),fmt=x=>x?new Date(x+'T12:00').toLocaleDateString('es-CL',{day:'2-digit',month:'short'}):'Seleccionar';
 function save(){localStorage.setItem('findeListings',JSON.stringify(listings))}
 function saveReservations(){localStorage.setItem('findeReservations',JSON.stringify(reservations))}
-function overlaps(id,a,b){return reservations.some(r=>r.listingId==id && r.status==='Confirmada' && a<r.checkout && b>r.checkin)||manualOverlap(id,a,b)}
+function overlaps(id,a,b){return reservations.some(r=>!r.example && r.listingId==id && r.status==='Confirmada' && a<r.checkout && b>r.checkin)||manualOverlap(id,a,b)}
 function amenityList(x){return (x.services&&x.services.length?x.services:['Wifi','Estacionamiento']).slice(0,8)}
 function availableListings(){return listings.filter(x=>x.active!==false)}
 function validRut(v){v=(v||'').replace(/\./g,'').replace(/-/g,'').toUpperCase();if(!/^\d{7,8}[0-9K]$/.test(v))return false;let body=v.slice(0,-1),dv=v.slice(-1),sum=0,m=2;for(let i=body.length-1;i>=0;i--){sum+=Number(body[i])*m;m=m===7?2:m+1}let x=11-(sum%11),calc=x===11?'0':x===10?'K':String(x);return dv===calc}
@@ -258,12 +258,71 @@ function adminLogin(){A.innerHTML=`<section class="login admin-login"><span clas
 function adminNav(active='Resumen'){let items=[['Resumen','adminDashboard()'],['Alojamientos','adminListings()'],['Experiencias','adminExperienceReservations()'],['Propietarios','adminOwners()'],['Interesados','adminProspects()'],['Reservas','adminReservations()'],['Clientes','adminCustomers()'],['Pagos','adminPayments()'],['Calendario','adminCalendar()'],['Reportes','adminReports()'],['Configuración','adminSettings()'],['Incidencias','adminIncidents()']];return `<aside class="admin-sidebar"><div class="admin-logo">Finde <small>ADMIN</small></div>${items.map(i=>`<button class="${active==i[0]?'active':''}" onclick="${i[1]}">${i[0]}</button>`).join('')}<button onclick="home()">Salir</button></aside>`}
 function adminShell(active,title,subtitle,content){A.innerHTML=`<section class="admin-panel"><div class="admin-layout">${adminNav(active)}<div class="admin-content"><div class="admin-head"><div><small>PANEL FINDE</small><h1>${title}</h1><p class="muted">${subtitle}</p></div><button class="outline" onclick="home()">Ver sitio público</button></div>${content}</div></div></section>`;scrollTo(0,0)}
 function adminMetrics(){let rs=reservations.filter(r=>r.status!=='Cancelada'&&r.status!=='Reembolsada'),gross=rs.reduce((a,r)=>a+r.total,0),fee=Math.round(gross*.10),active=availableListings().length,paid=rs.filter(r=>paymentStatus(r.id)==='Transferido').reduce((a,r)=>a+Math.round(r.total*.9),0);return {rs,gross,fee,net:gross-fee,active,paid,pendingPay:gross-fee-paid}}
-function adminDashboard(){let m=adminMetrics(),pending=listings.filter(x=>adminStatus(x)==='Pendiente').length,open=adminIssues.filter(x=>x.status==='Abierta').length;adminShell('Resumen','Resumen','Estado general de la operación de Finde.',`<div class="admin-kpis"><div><small>Reservas</small><b>${m.rs.length}</b><span>activas</span></div><div><small>Ventas</small><b>${money(m.gross)}</b><span>volumen reservado</span></div><div><small>Comisión Finde</small><b>${money(m.fee)}</b><span>demo 10%</span></div><div><small>Por pagar</small><b>${money(m.pendingPay)}</b><span>a propietarios</span></div><div><small>Alojamientos</small><b>${m.active}</b><span>activos</span></div></div><div class="admin-grid"><div class="admin-card"><h2>Reservas recientes</h2>${m.rs.length?m.rs.slice().reverse().slice(0,5).map(reservationRow).join(''):'<p class="muted">Aún no hay reservas.</p>'}</div><div class="admin-card"><h2>Pendientes</h2><div class="task"><b>${pending}</b><span>Alojamientos por revisar</span></div><div class="task"><b>${m.rs.filter(r=>paymentStatus(r.id)!=='Transferido').length}</b><span>Pagos a propietarios</span></div><div class="task"><b>${open}</b><span>Incidencias abiertas</span></div></div></div>`)}
+
+const adminExampleNames = ['Pedro Lagos','Ana Fuentes','Claudia Vera','Nataly Soto','Camila Ríos','Diego Paredes','Valentina Mora','Sebastián Vidal','Daniela Ruiz','Martín Silva','Paula Castillo','Ignacio Torres','Fernanda Díaz','Andrés Leiva','Catalina Reyes'];
+const adminExampleOwners = adminExampleNames.map((name, i) => ({name, listingId:19001+i, email:'anfitrion'+(i+1)+'@example.com'}));
+const adminExampleKey = 'findeAdminSeedV1';
+
+function seedAdminExamples(){
+  if(localStorage.getItem(adminExampleKey))return;
+  const date = offset => {
+    const day = new Date();
+    day.setUTCDate(day.getUTCDate()+offset);
+    return day.toISOString().slice(0,10);
+  };
+  adminExampleOwners.forEach((owner,i) => {
+    const id = 920001+i;
+    const listing = listings.find(x=>x.id===owner.listingId);
+    const [name,commune,region,price] = hostRegistrationExamples[i];
+    const nights = 2+i%4;
+    const start = i%2===0 ? -10-i : 3+i*3;
+    const guest = adminExampleNames[(i+4)%adminExampleNames.length];
+    const email = 'cliente'+(i+1)+'@example.com';
+    if(!reservations.some(r=>r.id===id)){
+      reservations.push({id,listingId:owner.listingId,listingName:listing?.name||'Cabañas '+name,commune,region,guest,email,phone:'Sin teléfono',guests:2+i%3,checkin:date(start),checkout:date(start+nights),nights,total:nights*price,status:i%2===0?'Finalizada':'Confirmada',example:true});
+    }
+    adminPaymentState[id] ??= i%2===0?'Transferido':'Pendiente transferencia';
+    const experience = experienceSeed[i%experienceSeed.length];
+    const people = 2+i%4;
+    if(!experienceReservations.some(r=>r.id===id)){
+      experienceReservations.push({id,experienceId:experience.id,experienceName:experience.name,provider:experience.provider,guest,email,people,date:date(start),total:experience.price*people,status:i%2===0?'Finalizada':'Confirmada',example:true});
+    }
+    const incidentId = 'INC-M'+String(i+1).padStart(2,'0');
+    if(!adminIssues.some(issue=>issue.id===incidentId)){
+      adminIssues.push({id:incidentId,type:['Reserva','Alojamiento','Pago'][i%3],subject:['Consulta sobre llegada','Actualización de huéspedes','Revisión de comprobante','Cambio de fecha','Consulta de equipamiento'][i%5],status:i%3===0?'Resuelta':'Abierta',reservation:bookingCode(id),notes:'Caso ficticio de '+guest+' para '+name+'.'});
+    }
+  });
+  try {
+    saveReservations();
+    saveExperienceReservations();
+    saveAdmin();
+    localStorage.setItem(adminExampleKey,'1');
+  } catch {
+    // The cases remain available for the current session if storage is full.
+  }
+}
+
+function adminDashboard(){seedAdminExamples();let m=adminMetrics(),pending=listings.filter(x=>adminStatus(x)==='Pendiente').length,open=adminIssues.filter(x=>x.status==='Abierta').length;adminShell('Resumen','Resumen','Estado general de la operación de Finde.',`<div class="admin-kpis"><div><small>Reservas</small><b>${m.rs.length}</b><span>activas</span></div><div><small>Ventas</small><b>${money(m.gross)}</b><span>volumen reservado</span></div><div><small>Comisión Finde</small><b>${money(m.fee)}</b><span>demo 10%</span></div><div><small>Por pagar</small><b>${money(m.pendingPay)}</b><span>a propietarios</span></div><div><small>Alojamientos</small><b>${m.active}</b><span>activos</span></div></div><div class="admin-grid"><div class="admin-card"><h2>Reservas recientes</h2>${m.rs.length?m.rs.slice().reverse().slice(0,5).map(reservationRow).join(''):'<p class="muted">Aún no hay reservas.</p>'}</div><div class="admin-card"><h2>Pendientes</h2><div class="task"><b>${pending}</b><span>Alojamientos por revisar</span></div><div class="task"><b>${m.rs.filter(r=>paymentStatus(r.id)!=='Transferido').length}</b><span>Pagos a propietarios</span></div><div class="task"><b>${open}</b><span>Incidencias abiertas</span></div></div></div>`)}
 function adminListings(){adminShell('Alojamientos','Alojamientos','Revisa, aprueba, pausa o rechaza la oferta de Finde.',`<div class="admin-card"><div class="admin-toolbar"><input id="adminListingSearch" placeholder="Buscar alojamiento o comuna" oninput="adminListingsFilter()"></div><div id="adminListingRows">${adminListingRows(listings)}</div></div>`)}
 function adminListingRows(arr){return arr.map(x=>`<div class="admin-table-row listing-admin"><img src="${photoList(x)[0]||x.img}"><span><b>${x.name}</b><small>${x.commune}, ${x.region} · ${x.type||'Alojamiento'}</small></span><span>${money(x.price)}<small>por noche</small></span><span class="tag ${adminStatus(x)!=='Aprobado'?'offtag':''}">${adminStatus(x)}</span><div class="admin-actions"><button class="tiny secondary" onclick="detail(${x.id})">Ver</button><button class="tiny" onclick="setListingReview(${x.id},'Aprobado')">Aprobar</button><button class="tiny secondary" onclick="setListingReview(${x.id},'Pausado')">Pausar</button><button class="tiny danger" onclick="setListingReview(${x.id},'Rechazado')">Rechazar</button></div></div>`).join('')||'<p class="muted">No hay alojamientos.</p>'}
 function adminListingsFilter(){let q=document.getElementById('adminListingSearch').value.toLowerCase(),e=document.getElementById('adminListingRows');e.innerHTML=adminListingRows(listings.filter(x=>(x.name+' '+x.commune+' '+x.region).toLowerCase().includes(q)))}
-function adminOwners(){adminShell('Propietarios','Propietarios','Personas y empresas que ofrecen alojamientos en Finde.',`<div class="admin-card"><div class="admin-table-row"><span><b>Carolina Pérez</b><small>propietario@demo.cl · +56 9 5555 5555</small></span><span><b>${listings.length}</b><small>alojamientos</small></span><span><b>${reservations.length}</b><small>reservas</small></span><span class="tag">Activo</span><button class="tiny secondary" onclick="adminOwnerDetail()">Ver ficha</button></div></div>`)}
-function adminOwnerDetail(){let gross=reservations.reduce((a,r)=>a+r.total,0);adminShell('Propietarios','Carolina Pérez','Ficha y operación del propietario.',`<div class="admin-grid"><div class="admin-card"><h2>Datos</h2><p><b>Correo:</b> propietario@demo.cl</p><p><b>Teléfono:</b> +56 9 5555 5555</p><p><span class="tag">Activo</span></p></div><div class="admin-card"><h2>Operación</h2><p><b>${listings.length}</b> alojamientos</p><p><b>${reservations.length}</b> reservas</p><p><b>${money(gross)}</b> volumen reservado</p><button onclick="adminListings()">Ver alojamientos</button></div></div>`)}
+function adminOwners(){
+ const owners = [{name:'Carolina Pérez',email:'propietario@demo.cl'},...adminExampleOwners];
+ const rows = owners.map((owner,i) => {
+  const properties = listings.filter(x=>i===0?!x.exampleListing:x.id===owner.listingId);
+  const bookings = reservations.filter(r=>properties.some(x=>x.id===r.listingId));
+  return `<div class="admin-table-row"><span><b>${esc(owner.name)}</b><small>${esc(owner.email)}</small></span><span><b>${properties.length}</b><small>alojamientos</small></span><span><b>${bookings.length}</b><small>reservas</small></span><span class="tag">Activo</span><button class="tiny secondary" onclick="adminOwnerDetail(${i-1})">Ver ficha</button></div>`;
+ });
+ adminShell('Propietarios','Propietarios','Personas y empresas que ofrecen alojamientos en Finde.',`<div class="admin-card">${rows.join('')}</div>`);
+}
+function adminOwnerDetail(index=-1){
+ const owner = index<0?{name:'Carolina Pérez',email:'propietario@demo.cl'}:adminExampleOwners[index];
+ if(!owner)return;
+ const properties = listings.filter(x=>index<0?!x.exampleListing:x.id===owner.listingId);
+ const bookings = reservations.filter(r=>properties.some(x=>x.id===r.listingId));
+ const gross = bookings.reduce((total,r)=>total+r.total,0);
+ adminShell('Propietarios',owner.name,'Ficha y operación del propietario.',`<div class="admin-grid"><div class="admin-card"><h2>Datos</h2><p><b>Correo:</b> ${esc(owner.email)}</p><p><span class="tag">Activo</span></p></div><div class="admin-card"><h2>Operación</h2><p><b>${properties.length}</b> alojamientos</p><p><b>${bookings.length}</b> reservas</p><p><b>${money(gross)}</b> volumen reservado</p><button onclick="adminListings()">Ver alojamientos</button></div></div>`);
+}
 function adminReservations(){adminShell('Reservas','Reservas','Control de todas las operaciones creadas por turistas.',`<div class="admin-card">${reservations.length?reservations.slice().reverse().map(r=>`<div class="admin-table-row"><span><b>${bookingCode(r.id)}</b><small>${r.guest}</small></span><span><b>${r.listingName}</b><small>${fmt(r.checkin)} → ${fmt(r.checkout)}</small></span><span><b>${money(r.total)}</b><small>${r.guests} huésped(es)</small></span><span class="tag">${r.status}</span><button class="tiny secondary" onclick="adminReservationDetail(${r.id})">Gestionar</button></div>`).join(''):'<p class="muted">Todavía no hay reservas.</p>'}</div>`)}
 function adminReservationDetail(id){let r=reservations.find(x=>x.id==id);if(!r)return;adminShell('Reservas','Detalle de reserva',bookingCode(r.id),`<div class="admin-grid"><div class="admin-card"><h2>${r.listingName}</h2><p>${fmt(r.checkin)} → ${fmt(r.checkout)} · ${r.nights} noche(s)</p><p>${r.guests} huésped(es)</p><h2>${money(r.total)}</h2><p><span class="tag">${r.status}</span></p><h3>Cambiar estado</h3><div class="admin-actions"><button class="tiny" onclick="setReservationStatus(${r.id},'Confirmada')">Confirmada</button><button class="tiny secondary" onclick="setReservationStatus(${r.id},'En curso')">En curso</button><button class="tiny secondary" onclick="setReservationStatus(${r.id},'Finalizada')">Finalizada</button><button class="tiny danger" onclick="setReservationStatus(${r.id},'Cancelada')">Cancelada</button></div></div><div class="admin-card"><h2>Cliente</h2><p><b>${r.guest}</b></p><p>${r.email}</p><p>${r.phone}</p><p><b>Documento:</b> ${r.docType||'No registrado'} ${r.docNumber||''}</p><h3>Distribución</h3><p>Comisión Finde: <b>${money(Math.round(r.total*.1))}</b></p><p>Propietario: <b>${money(Math.round(r.total*.9))}</b></p><p>Transferencia: <span class="tag">${paymentStatus(r.id)}</span></p></div></div>`)}
 function adminCustomers(){let map={};reservations.forEach(r=>{let k=r.email;if(!map[k])map[k]={name:r.guest,email:r.email,phone:r.phone,count:0,total:0};map[k].count++;map[k].total+=r.total});let cs=Object.values(map);adminShell('Clientes','Clientes','Huéspedes e historial de reservas.',`<div class="admin-card">${cs.length?cs.map(c=>`<div class="admin-table-row"><span><b>${c.name}</b><small>${c.email} · ${c.phone}</small></span><span><b>${c.count}</b><small>reservas</small></span><span><b>${money(c.total)}</b><small>total reservado</small></span><span class="tag">Cliente</span></div>`).join(''):'<p class="muted">Los clientes aparecerán cuando existan reservas.</p>'}</div>`)}
