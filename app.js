@@ -36,9 +36,10 @@ if (!localStorage.getItem(hostExampleVersionKey)) {
     checkin: '15:00',
     checkout: '11:00',
     cancel: 'Cancelación flexible hasta 48 horas antes.',
-    description: 'Alojamiento ficticio registrado como borrador para la versión de pruebas de Findito.',
-    active: false,
-    adminStatus: 'Pendiente'
+    description: 'Alojamiento ficticio de la versión de pruebas de Findito.',
+    exampleListing: true,
+    active: true,
+    adminStatus: 'Aprobado'
   })).filter(listing => !existingIds.has(listing.id));
   listings = [...listings, ...examples];
   try {
@@ -49,6 +50,26 @@ if (!localStorage.getItem(hostExampleVersionKey)) {
   }
 }
 
+const hostPublicationKey = 'findeHostExamplePublicationV1';
+if (!localStorage.getItem(hostPublicationKey)) {
+  listings = listings.map(listing => {
+    if (listing.id < 19001 || listing.id >= 19001 + hostRegistrationExamples.length ||
+        listing.description !== 'Alojamiento ficticio registrado como borrador para la versión de pruebas de Findito.') return listing;
+    return {
+      ...listing,
+      description: 'Alojamiento ficticio de la versión de pruebas de Findito.',
+      exampleListing: true,
+      active: listing.adminStatus === 'Pendiente' ? true : listing.active,
+      adminStatus: listing.adminStatus === 'Pendiente' ? 'Aprobado' : listing.adminStatus
+    };
+  });
+  try {
+    save();
+    localStorage.setItem(hostPublicationKey, '1');
+  } catch {
+    // The catalogue can still show the examples if browser storage is full.
+  }
+}
 let reservations=JSON.parse(localStorage.getItem('findeReservations')||'[]');
 let ownerBlocks=JSON.parse(localStorage.getItem('findeOwnerBlocks')||'[]');
 function saveOwnerBlocks(){localStorage.setItem('findeOwnerBlocks',JSON.stringify(ownerBlocks))}
@@ -67,7 +88,7 @@ function validDocument(type,value){value=(value||'').trim();if(type==='RUT')retu
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)}
 function bookingCode(id){return 'FD-'+String(id).slice(-6)}
 function destinations(q=''){let map={};availableListings().forEach(x=>{let k=x.commune+'|'+x.region;if(!map[k])map[k]={commune:x.commune,region:x.region,count:0};map[k].count++});return Object.values(map).filter(x=>(x.commune+' '+x.region).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>b.count-a.count)}
-function card(x){return `<div class="card clickable" onclick="detail(${x.id})"><img src="${(x.photos&&x.photos.length?x.photos[0]:x.img)}"><div class="pad"><h3>${x.name}</h3><p class="muted">${x.commune}, ${x.region} · hasta ${x.cap} huéspedes</p><span class="price">${money(x.price)} / noche</span><div class="openhint">Ver alojamiento →</div></div></div>`}
+function card(x){return `<div class="card clickable" onclick="detail(${x.id})">${photoList(x).length ? `<img src="${photoList(x)[0]}" alt="">` : ''}<div class="pad"><h3>${x.name}</h3>${x.exampleListing ? '<p class="muted">Alojamiento ficticio</p>' : ''}<p class="muted">${x.commune}, ${x.region} · hasta ${x.cap} huéspedes</p><span class="price">${money(x.price)} / noche</span><div class="openhint">Ver alojamiento →</div></div></div>`}
 function home(){A.innerHTML=`<section class="hero"><h1>Encuentra tu próxima escapada</h1><p>Encuentra alojamientos disponibles, compara opciones y reserva tu estadía en pocos pasos.</p><div class="searchbar"><div class="field"><small>DESTINO</small><input id="dest" autocomplete="off" placeholder="¿A dónde quieres ir?" value="${s.dest}" onfocus="showSug()" oninput="showSug(this.value)">${s.sug?suggestions():''}</div><div class="field" onclick="cal()"><small>ENTRADA</small>${fmt(s.a)}</div><div class="field" onclick="cal()"><small>SALIDA</small>${fmt(s.b)}</div><div class="field" onclick="guest()"><small>HUÉSPEDES</small>${s.ad+s.ni} huésped(es)</div><button onclick="search()">Buscar</button>${s.cal?calendar():''}${s.g?guestbox():''}</div></section><section class="section"><h2>Destinos con alojamientos disponibles</h2><p class="muted">Mostramos únicamente destinos donde actualmente existen alojamientos publicados.</p><div class="cards">${destinations().map(d=>`<div class="box" style="cursor:pointer" onclick="choose('${d.commune}')"><h3>📍 ${d.commune}</h3><p class="muted">${d.region}</p><b>${d.count} alojamiento${d.count>1?'s':''}</b></div>`).join('')}</div></section><section class="section"><h2>Alojamientos destacados</h2><div class="cards">${availableListings().slice(0,8).map(card).join('')}</div></section>`;scrollTo(0,0)}
 function showSug(q=''){let e=document.getElementById('dest');if(e)s.dest=e.value;s.sug=true;let field=e&&e.closest('.field');if(field){let old=field.querySelector('.suggest');if(old)old.remove();field.insertAdjacentHTML('beforeend',suggestions())}}
 function suggestions(){let ds=destinations(s.dest);return `<div class="suggest">${ds.length?ds.map(d=>`<div class="suggest-option" onmousedown="event.preventDefault();event.stopPropagation();choose('${d.commune.replace(/'/g,"\\'")}')"><b>📍 ${d.commune}, ${d.region}</b><small>${d.count} alojamiento${d.count>1?'s':''} disponible${d.count>1?'s':''}</small></div>`).join(''):`<div><b>Sin oferta en este destino</b><small>Solo mostramos lugares con alojamientos publicados.</small></div>`}</div>`}
