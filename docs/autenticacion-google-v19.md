@@ -8,7 +8,15 @@
 - Crear o vincular cuentas a partir del identificador estable de Google (`sub`), no únicamente del correo.
 - Si el correo ya pertenece a una cuenta Finde, exigir verificación/autenticación apropiada antes de vincular; no fusionar cuentas automáticamente por coincidencia de email.
 - Solicitar solo nombre, correo y foto si procede; informar tratamiento de datos.
-- Propietarios y proveedores deben completar verificación de identidad, datos bancarios y aprobación administrativa independientemente de Google.
+- El anfitrión puede crear su cuenta e iniciar sesión con Google. La sesión permite preparar fichas y enviarlas a revisión. La verificación de identidad y los datos para liquidaciones se gestionan según corresponda al servicio.
+
+## Alta de alojamientos y experiencias
+1. **Anfitriones → Continuar con Google.** El anfitrión entra a su cuenta y accede a sus propias fichas.
+2. **Crear ficha.** Puede cargar fotos, descripción, ubicación, precios y disponibilidad, y guardar un borrador para continuarlo después.
+3. **Enviar a revisión.** La ficha pasa de `borrador` a `pendiente_revision` y aparece en Administración, en Alojamientos o Experiencias según su tipo. El anfitrión puede consultar el estado.
+4. **Revisión de Administración.** Un administrador autorizado puede aprobar y publicar la ficha, o devolverla con observaciones para que el anfitrión corrija y vuelva a enviar. El catálogo público solo muestra fichas publicadas.
+
+El servidor debe asociar cada ficha con la cuenta de su anfitrión y comprobar su propiedad en cada operación. Solo el rol de Administración puede cambiar el estado a `publicada`. Si el anfitrión modifica una ficha publicada, la versión aprobada sigue visible mientras Administración revisa los cambios.
 - Roles y permisos se asignan y verifican en el servidor, nunca a partir de parámetros manipulables del navegador.
 - Mantener alternativa de registro tradicional, recuperación de contraseña y cierre de sesión.
 
