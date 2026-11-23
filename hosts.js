@@ -161,14 +161,12 @@ const payoutStates={revision:'En revisión',observado:'Con observaciones',aproba
 function payoutLabel(name,label,options=''){
  return '<label>'+label+'<input name="'+name+'" required '+options+'></label>';
 }
-function payoutRows(items,admin=false){
- return items.map(d=>'<article class="host-card"><h3>'+hostEscape(d.tipo)+' · Folio '+hostEscape(d.folio)+'</h3><p>'+hostEscape(d.referencia)+' · '+money(d.monto)+' · '+hostEscape(payoutStates[d.estado])+'</p>'+(d.nota?'<p>'+hostEscape(d.nota)+'</p>':'')+(admin?'<p>Anfitrión: '+hostEscape(d.nombre)+'</p><button class="outline" data-payout-action="pdf" data-id="'+Number(d.id)+'">Descargar PDF</button> <button class="outline" data-payout-action="banco" data-id="'+Number(d.id)+'">Ver datos bancarios</button><div data-bank-result role="status"></div>'+payoutReviewForm(d):'')+'</article>').join('')||'<p>Todavía no hay documentos de cobro.</p>';
+
+function payoutDate(value){
+ return /^\d{4}-\d{2}-\d{2}$/.test(value||'')?value.split('-').reverse().join('/'):'—';
 }
-function payoutReviewForm(d){
- const id=Number(d.id);
- if(d.estado==='revision')return '<form data-payout-review="'+id+'"><label>Observaciones<textarea name="nota" maxlength="500"></textarea></label><button value="aprobado">Aprobar</button> <button value="observado" class="outline">Solicitar corrección</button><p role="status"></p></form>';
- if(d.estado==='aprobado')return '<form data-payout-review="'+id+'"><button value="pagado">Registrar pago realizado</button><p role="status"></p></form>';
- return '';
+function payoutRows(items){
+ return items.map(d=>'<article class="host-card"><h3>'+hostEscape(d.tipo)+' · Folio '+hostEscape(d.folio)+'</h3><p>'+hostEscape(d.referencia)+' · '+money(d.monto)+' · '+hostEscape(payoutStates[d.estado])+'</p>'+(d.fecha_pago?'<p>Transferencia: '+payoutDate(d.fecha_pago)+'</p>':'')+(d.nota?'<p>'+hostEscape(d.nota)+'</p>':'')+'</article>').join('')||'<p>Todavía no hay documentos de cobro.</p>';
 }
 async function loadHostPayouts(){
  const area=document.getElementById('hostPayouts');
@@ -178,7 +176,7 @@ async function loadHostPayouts(){
   const bank=data.cuenta;
   area.innerHTML='<h2>Datos bancarios</h2>'+(bank?'<p>'+hostEscape(bank.titular)+' · '+hostEscape(bank.banco)+' · '+hostEscape(bank.numero)+'</p>':'<p>Aún no has registrado una cuenta.</p>')+
    '<form data-payout-host="banco">'+payoutLabel('titular','Titular','maxlength="120"')+payoutLabel('rut','RUT del titular, sin puntos','maxlength="12" placeholder="12345678-5"')+payoutLabel('banco','Banco','maxlength="100"')+payoutLabel('tipo','Tipo de cuenta','maxlength="45"')+payoutLabel('numero','Número de cuenta','inputmode="numeric" maxlength="30"')+'<button>Guardar datos bancarios</button><p role="status"></p></form>'+
-   '<h2>Documentos de cobro</h2><p>Receptor: Certera SpA.</p><form data-payout-host="documentos"><label>Tipo de documento<select name="tipo"><option>Boleta</option><option>Factura</option></select></label>'+payoutLabel('folio','Folio','inputmode="numeric" maxlength="20"')+payoutLabel('monto','Monto en pesos chilenos','type="number" min="1" max="100000000"')+payoutLabel('referencia','Reserva o liquidación asociada','maxlength="100"')+'<label>Documento PDF, hasta 1 MB<input name="archivo" type="file" accept="application/pdf,.pdf" required></label><button>Enviar documento a revisión</button><p role="status"></p></form>'+payoutRows(data.documentos);
+   '<h2>Documentos de cobro</h2><p>Receptor: Certera SpA.</p><form data-payout-host="documentos"><label>Tipo de documento<select name="tipo"><option>Boleta</option><option>Factura</option><option>Otro documento</option></select></label>'+payoutLabel('folio','Folio','inputmode="numeric" maxlength="20"')+payoutLabel('monto','Monto en pesos chilenos','type="number" min="1" max="100000000"')+payoutLabel('referencia','Reserva o liquidación asociada','maxlength="100"')+'<label>Documento PDF, hasta 1 MB<input name="archivo" type="file" accept="application/pdf,.pdf" required></label><button>Enviar documento a revisión</button><p role="status"></p></form>'+payoutRows(data.documentos);
   area.querySelectorAll('[data-payout-host]').forEach(form=>{form.onsubmit=async event=>{
    event.preventDefault();
    const button=event.submitter;
@@ -197,37 +195,94 @@ async function loadHostPayouts(){
   };});
  }catch(error){if(area.isConnected)area.textContent=error.message;}
 }
-async function adminPayouts(){
- adminShell('Revisión de fichas','Documentos de cobro','Revisión y registro de pagos de alojamientos y experiencias.','<button class="outline" onclick="hostModeration()">Volver a revisión de fichas</button><div class="admin-card" id="adminPayouts">Cargando…</div>');
+
+const payoutSearchKey=value=>String(value).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+const payoutTypes=['Boleta','Factura','Otro documento'];
+function payoutBadge(doc){
+ return '<span class="payout-badge" data-state="'+hostEscape(doc.estado)+'">'+hostEscape(payoutStates[doc.estado]||doc.estado)+'</span>';
+}
+async function adminPayouts(options={}){
+ adminShell('Documentos de cobro','Documentos de cobro','Revisa los cobros y registra los pagos realizados.','<div id="adminPayouts">Cargando…</div>');
  const area=document.getElementById('adminPayouts');
  try{
-  const data=await hostRequest('admin/cobros-anfitriones');
+  const {documentos}=await hostRequest('admin/cobros-anfitriones');
   if(!area.isConnected)return;
-  area.innerHTML=payoutRows(data.documentos,true);
-  area.querySelectorAll('[data-payout-action]').forEach(button=>{button.onclick=async()=>{
-   const result=button.parentElement.querySelector('[data-bank-result]');
-   button.disabled=true;
-   try{
-    if(button.dataset.payoutAction==='banco'&&result.textContent){result.textContent='';button.textContent='Ver datos bancarios';return;}
-    const data=await hostRequest('admin/cobros-anfitriones/'+button.dataset.id+'/'+button.dataset.payoutAction);
-    if(data.cuenta){
-     const {titular,rut,banco,tipo,numero}=data.cuenta;
-     result.textContent=[titular,rut,banco,tipo,numero].join(' · ');
-     button.textContent='Ocultar datos bancarios';
-    }else{
-     const bytes=Uint8Array.from(atob(data.pdf),char=>char.charCodeAt(0));
-     const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-     const link=document.createElement('a');link.href=url;link.download='documento-cobro-'+Number(button.dataset.id)+'.pdf';link.click();
-     setTimeout(()=>URL.revokeObjectURL(url),60000);
-    }
-   }catch(error){result.textContent=error.message;}finally{button.disabled=false;}
-  };});
-  area.querySelectorAll('[data-payout-review]').forEach(form=>{form.onsubmit=async event=>{
+  area.innerHTML=`<div class="payout-filters">
+   <label>Buscar<input name="buscar" type="search" placeholder="Anfitrión o folio"></label>
+   <label>Tipo<select name="tipo"><option value="">Todos los tipos</option>${payoutTypes.map(tipo=>'<option>'+tipo+'</option>').join('')}</select></label>
+   <label>Estado<select name="estado"><option value="">Todos los estados</option>${Object.entries(payoutStates).map(([id,label])=>'<option value="'+id+'">'+label+'</option>').join('')}</select></label>
+   <label>Orden de solicitud<select name="orden"><option value="antiguas">Más antiguas primero</option><option value="recientes">Más recientes primero</option></select></label>
+  </div><div class="payout-layout"><div class="admin-card payout-table"><table><caption class="payout-caption">Solicitudes de cobro</caption><thead><tr><th>Anfitrión</th><th>Documento</th><th>Solicitud</th><th>Monto</th><th>Estado</th></tr></thead><tbody></tbody></table><p data-payout-empty hidden>No hay documentos que coincidan.</p></div><section class="admin-card" data-payout-detail aria-label="Detalle del documento"></section></div>`;
+  const detail=area.querySelector('[data-payout-detail]');
+  const tbody=area.querySelector('tbody');
+  const filter=area.querySelector('.payout-filters');
+  const fields=Object.fromEntries([...filter.querySelectorAll('input,select')].map(field=>[field.name,field]));
+  for(const [key,field] of Object.entries(fields))if(options[key])field.value=options[key];
+  let selectedId=options.selectedId;
+  function render(){
+   const search=payoutSearchKey(fields.buscar.value.trim());
+   const filtered=documentos.filter(d=>(!search||payoutSearchKey(d.nombre+' '+d.folio).includes(search))&&(!fields.tipo.value||d.tipo===fields.tipo.value)&&(!fields.estado.value||d.estado===fields.estado.value));
+   if(fields.orden.value==='recientes')filtered.reverse();
+   const selected=filtered.find(d=>Number(d.id)===selectedId)||filtered[0];
+   selectedId=selected?Number(selected.id):undefined;
+   tbody.innerHTML=filtered.map(d=>`<tr data-selected="${Number(d.id)===selectedId}"><td><button type="button" class="payout-select" data-doc="${Number(d.id)}" aria-pressed="${Number(d.id)===selectedId}">${hostEscape(d.nombre)}</button></td><td>${hostEscape(d.tipo)} · ${hostEscape(d.folio)}</td><td>${payoutDate(d.fecha_solicitud)}</td><td>${money(d.monto)}</td><td>${payoutBadge(d)}</td></tr>`).join('');
+   area.querySelector('[data-payout-empty]').hidden=filtered.length>0;
+   if(selected)renderPayoutDetail(detail,selected,()=>adminPayouts({selectedId,...Object.fromEntries(Object.entries(fields).map(([key,field])=>[key,field.value]))}));
+   else detail.innerHTML='<p>Selecciona un documento para ver su detalle.</p>';
+  }
+  filter.addEventListener('input',render);
+  tbody.addEventListener('click',event=>{
+   const button=event.target.closest('[data-doc]');
+   if(!button)return;
+   selectedId=Number(button.dataset.doc);
+   render();
+   tbody.querySelector('[data-doc="'+selectedId+'"]')?.focus();
+  });
+  render();
+ }catch(error){if(area.isConnected)area.textContent=error.status===401?'Inicia sesión en Revisión de fichas para acceder a los documentos de cobro.':error.message;}
+}
+function renderPayoutDetail(detail,doc,refresh){
+ const review=doc.estado==='revision';
+ const approved=doc.estado==='aprobado';
+ const form=review||approved?`<form><label>Estado<select name="estado">${review?'<option value="aprobado">Aprobado</option><option value="observado">Con observaciones</option>':'<option value="pagado">Pagado</option>'}</select></label>${approved?'<label>Fecha de transferencia<input type="date" name="fecha_pago" required></label>':''}<label>Observación<textarea name="nota" maxlength="500" rows="3"></textarea></label>${approved?'<p class="muted">La transferencia se realiza fuera de Findito.</p>':''}<button>Guardar registro</button></form>`:'';
+ detail.innerHTML=`<h2>${approved?'Registrar pago':'Detalle del documento'}</h2><h3>${hostEscape(doc.tipo)} · Folio ${hostEscape(doc.folio)}</h3><p>${hostEscape(doc.nombre)} · ${hostEscape(doc.referencia)}</p><p>Receptor: Certera SpA</p><p><strong>${money(doc.monto)}</strong> ${payoutBadge(doc)}</p>${doc.fecha_pago?'<p>Transferencia: '+payoutDate(doc.fecha_pago)+'</p>':''}${doc.nota?'<p>Observación: '+hostEscape(doc.nota)+'</p>':''}<div class="payout-actions"><button type="button" class="outline" data-payout-action="pdf">Descargar PDF</button><button type="button" class="outline" data-payout-action="banco" aria-expanded="false">Ver datos bancarios</button></div><div data-bank-result hidden></div>${form}<p data-payout-status role="status"></p>`;
+ const status=detail.querySelector('[data-payout-status]');
+ const bank=detail.querySelector('[data-bank-result]');
+ detail.querySelectorAll('[data-payout-action]').forEach(button=>{button.onclick=async()=>{
+  button.disabled=true;
+  status.textContent='';
+  try{
+   if(button.dataset.payoutAction==='banco'&&!bank.hidden){
+    bank.replaceChildren();bank.hidden=true;button.textContent='Ver datos bancarios';button.setAttribute('aria-expanded','false');return;
+   }
+   const data=await hostRequest('admin/cobros-anfitriones/'+Number(doc.id)+'/'+button.dataset.payoutAction);
+   if(!button.isConnected)return;
+   if(data.cuenta){
+    const {titular,rut,banco,tipo,numero}=data.cuenta;
+    bank.textContent=[titular,rut,banco,tipo,numero].join(' · ');
+    bank.hidden=false;button.textContent='Ocultar datos bancarios';button.setAttribute('aria-expanded','true');
+   }else{
+    const bytes=Uint8Array.from(atob(data.pdf),char=>char.charCodeAt(0));
+    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    const link=document.createElement('a');
+    link.href=url;link.download='documento-cobro-'+Number(doc.id)+'.pdf';link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+   }
+  }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+ };});
+ const editor=detail.querySelector('form');
+ if(editor){
+  const state=editor.elements.estado;
+  const note=editor.elements.nota;
+  state.onchange=()=>{note.required=state.value==='observado';};
+  editor.onsubmit=async event=>{
    event.preventDefault();
    const button=event.submitter;
    button.disabled=true;
-   try{await hostRequest('admin/cobros-anfitriones/'+form.dataset.payoutReview,'PATCH',{estado:button.value,nota:new FormData(form).get('nota')||''});await adminPayouts();}
-   catch(error){form.querySelector('[role=status]').textContent=error.message;}finally{button.disabled=false;}
-  };});
- }catch(error){if(area.isConnected)area.textContent=error.status===401?'Inicia sesión en Revisión de fichas para acceder a los documentos de cobro.':error.message;}
+   try{
+    await hostRequest('admin/cobros-anfitriones/'+Number(doc.id),'PATCH',Object.fromEntries(new FormData(editor)));
+    await refresh();
+   }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  };
+ }
 }

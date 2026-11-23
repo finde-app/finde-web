@@ -19,7 +19,7 @@ module.exports=function payoutRoutes(pool){
   if(!available)return reply(503,{error:'Pagos aún no está habilitado'});
   if(account&&route==='/hosts/pagos'&&method==='GET'){
    const [[row]]=await pool.execute('SELECT datos FROM finde_host_bank WHERE host_id=?',[account.id]);
-   const [documentos]=await pool.execute('SELECT id,tipo,folio,monto,referencia,estado,nota FROM finde_host_documents WHERE host_id=? ORDER BY id DESC LIMIT 100',[account.id]);
+   const [documentos]=await pool.execute("SELECT id,tipo,folio,monto,referencia,estado,nota,DATE_FORMAT(fecha_pago,'%Y-%m-%d') AS fecha_pago FROM finde_host_documents WHERE host_id=? ORDER BY id DESC LIMIT 100",[account.id]);
    const bank=row?decrypt(row.datos):null;
    const cuenta=bank?{...bank,numero:'•••• '+bank.numero.slice(-4)}:null;
    return reply(200,{cuenta,documentos});
@@ -38,7 +38,7 @@ module.exports=function payoutRoutes(pool){
   if(account&&route==='/hosts/pagos/documentos'&&method==='POST'){
    const {tipo,folio,referencia,pdf}=body;
    const monto=Number(body.monto);
-   if(!['Boleta','Factura'].includes(tipo)||typeof folio!=='string'||!/^\d{1,20}$/.test(folio)||typeof referencia!=='string'||!referencia.trim()||referencia.length>100||!Number.isSafeInteger(monto)||monto<1||monto>100000000||typeof pdf!=='string'||pdf.length>1400000||!/^[A-Za-z0-9+/]+={0,2}$/.test(pdf))return reply(400,{error:'Revisa tipo, folio, monto, referencia y PDF'});
+   if(!['Boleta','Factura','Otro documento'].includes(tipo)||typeof folio!=='string'||!/^\d{1,20}$/.test(folio)||typeof referencia!=='string'||!referencia.trim()||referencia.length>100||!Number.isSafeInteger(monto)||monto<1||monto>100000000||typeof pdf!=='string'||pdf.length>1400000||!/^[A-Za-z0-9+/]+={0,2}$/.test(pdf))return reply(400,{error:'Revisa tipo, folio, monto, referencia y PDF'});
    const bytes=Buffer.from(pdf,'base64');
    if(bytes.length>1048576||bytes.subarray(0,5).toString()!=='%PDF-')return reply(400,{error:'Adjunta un PDF de hasta 1 MB'});
    const archivo=encrypt(pdf);
@@ -53,7 +53,7 @@ module.exports=function payoutRoutes(pool){
    return reply(201,{ok:true});
   }
   if(!account&&route==='/admin/cobros-anfitriones'&&method==='GET'){
-   const [documentos]=await pool.execute('SELECT d.id,d.tipo,d.folio,d.monto,d.referencia,d.estado,d.nota,a.nombre FROM finde_host_documents d JOIN finde_host_accounts a ON a.id=d.host_id ORDER BY d.id DESC LIMIT 100');
+   const [documentos]=await pool.execute("SELECT d.id,d.tipo,d.folio,d.monto,d.referencia,d.estado,d.nota,DATE_FORMAT(d.fecha_pago,'%Y-%m-%d') AS fecha_pago,DATE_FORMAT(d.solicitado_en,'%Y-%m-%d') AS fecha_solicitud,a.nombre FROM finde_host_documents d JOIN finde_host_accounts a ON a.id=d.host_id ORDER BY d.solicitado_en ASC,d.id ASC");
    return reply(200,{documentos});
   }
   const match=route.match(/^\/admin\/cobros-anfitriones\/(\d+)(?:\/(pdf|banco))?$/);
@@ -70,7 +70,13 @@ module.exports=function payoutRoutes(pool){
     const note=typeof body.nota==='string'?body.nota.trim():'';
     const previous={aprobado:'revision',observado:'revision',pagado:'aprobado'};
     if(!Object.hasOwn(previous,body.estado)||note.length>500||(body.estado==='observado'&&!note))return reply(400,{error:'Revisa el estado y las observaciones'});
-    const [result]=await pool.execute('UPDATE finde_host_documents SET estado=?,nota=? WHERE id=? AND estado=?',[body.estado,note,match[1],previous[body.estado]]);
+    const fecha=body.estado==='pagado'?body.fecha_pago:null;
+    if(body.estado==='pagado'){
+     if(typeof fecha!=='string'||!/^[1-9]\d{3}-\d{2}-\d{2}$/.test(fecha))return reply(400,{error:'Indica la fecha de transferencia'});
+     const parsed=new Date(fecha+'T00:00:00Z');
+     if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==fecha)return reply(400,{error:'La fecha de transferencia es inválida'});
+    }
+    const [result]=await pool.execute('UPDATE finde_host_documents SET estado=?,nota=?,fecha_pago=? WHERE id=? AND estado=?',[body.estado,note,fecha,match[1],previous[body.estado]]);
     return result.affectedRows?reply(200,{ok:true}):reply(409,{error:'El documento cambió de estado'});
    }
   }

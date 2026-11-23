@@ -14,4 +14,23 @@
 .host-listing h3{margin:0;overflow-wrap:anywhere}.host-status{display:inline-block;padding:3px 8px;border-radius:7px;background:#e8efed;font-size:.85rem}.host-status[data-state=pendiente],.host-status[data-state=devuelta]{background:#fff0bf;color:#604600}.host-status[data-state=publicada]{background:#d5f4dc;color:#16502a}
 @media(max-width:900px){.host-overview{grid-template-columns:1fr}.host-workspace{padding:20px}}
 @media(max-width:640px){.host-dashboard{grid-template-columns:1fr}.host-sidebar{padding:14px}.host-sidebar nav{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:10px}.host-workspace{padding:12px}.host-heading{flex-wrap:wrap}.host-metrics{grid-template-columns:1fr}.host-listing{grid-template-columns:58px minmax(0,1fr)}.host-listing img,.host-photo-empty{width:58px}.host-listing button{grid-column:2;justify-self:start}}
-</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=anfitriones-1"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=panel-pagos-1"></script></body></html>
+
+.payout-filters{display:grid;grid-template-columns:minmax(12rem,2fr) repeat(3,minmax(8rem,1fr));gap:12px;margin:0 0 18px}
+.payout-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(16rem,1fr);gap:16px;align-items:start}
+.payout-layout .admin-card{margin:0;min-width:0}
+.payout-table{overflow-x:auto}
+.payout-table table{width:100%;border-collapse:collapse;text-align:left}
+.payout-table th,.payout-table td{padding:10px 8px;border-bottom:1px solid #dbe8e5;vertical-align:middle}
+.payout-caption{text-align:left;font-weight:700;padding:0 0 10px}
+.payout-table tr[data-selected=true]{background:#e1f4ed}
+.payout-table .payout-select{background:transparent;color:#005d53;text-align:left;padding:4px;font-weight:700}
+.payout-badge{display:inline-block;background:#e8efed;border-radius:20px;padding:3px 8px;font-size:.83rem;white-space:nowrap}
+.payout-badge[data-state=revision],.payout-badge[data-state=observado]{background:#fff0c8;color:#674500}
+.payout-badge[data-state=aprobado],.payout-badge[data-state=pagado]{background:#d9f4df;color:#16512e}
+.payout-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+[data-payout-detail] form{border-top:1px solid #dbe8e5;padding-top:12px;margin-top:12px}
+.payout-filters label,[data-payout-detail] label{display:block;font-weight:600;margin-bottom:8px}
+.payout-filters input,.payout-filters select,[data-payout-detail] select,[data-payout-detail] input,[data-payout-detail] textarea{width:100%;margin-top:4px}
+@media(max-width:1150px){.payout-layout{grid-template-columns:1fr}.payout-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.payout-filters{grid-template-columns:1fr}}
+</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=panel-pagos-2"></script></body></html>
