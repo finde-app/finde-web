@@ -1,4 +1,5 @@
 'use strict';
+const payoutRoutes=require('./payouts');
 const crypto = require('node:crypto');
 const {promisify} = require('node:util');
 const scrypt = promisify(crypto.scrypt);
@@ -10,6 +11,7 @@ const hashPassword = async (password, salt = crypto.randomBytes(16).toString('he
 
 module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
   const attempts = new Map();
+  const payouts=payoutRoutes(pool);
   const cookie = (value, age) => 'finde_host='+value+'; HttpOnly; Secure; SameSite=Strict; Path=/api/hosts; Max-Age='+age;
   async function sendReset(email, value) {
     const url = new URL('/#restablecer='+value, origin);
@@ -18,7 +20,7 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
   }
   return async function host(req,res,path) {
     const route = path.replace(/^\/api(?=\/)/,'');
-    if (!route.startsWith('/hosts/') && route !== '/catalogo-anfitriones' && !route.startsWith('/admin/fichas-anfitriones')) return false;
+    if (!route.startsWith('/hosts/') && route !== '/catalogo-anfitriones' && !route.startsWith('/admin/fichas-anfitriones') && !route.startsWith('/admin/cobros-anfitriones')) return false;
     const method=req.method;
     const reply=(status,data,headers)=>{json(res,status,data,headers);return true;};
     if (method!=='GET' && req.headers.origin!==origin) return reply(403,{error:'Origen no autorizado'});
@@ -41,7 +43,7 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
       let body={};
       if(method==='POST'||method==='PATCH'){
         if(!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']||''))return reply(415,{error:'Se requiere JSON'});
-        try{body=await readBody(req,route==='/hosts/fichas'?1900000:8192);if(!body||typeof body!=='object'||Array.isArray(body))throw Error();}
+        try{body=await readBody(req,['/hosts/fichas','/hosts/pagos/documentos'].includes(route)?1900000:8192);if(!body||typeof body!=='object'||Array.isArray(body))throw Error();}
         catch{return res.destroyed ? true : reply(400,{error:'Solicitud inválida'});}
       }
       const email=typeof body.email==='string'?body.email.trim().toLowerCase():'';
@@ -85,6 +87,7 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
         }catch(e){await connection.rollback();throw e;}finally{connection.release();}
         return reply(200,{mensaje:'Contraseña actualizada. Ya puedes iniciar sesión.'},{'Set-Cookie':cookie('',0)});
       }
+      if(admin&&route.startsWith('/admin/cobros-anfitriones'))return await payouts(route,method,body,reply,null);
       if(admin){
         if(method==='GET' && route==='/admin/fichas-anfitriones'){
           const [rows]=await pool.execute("SELECT l.id,l.ficha,l.estado,a.nombre FROM finde_host_listings l JOIN finde_host_accounts a ON a.id=l.host_id WHERE l.estado='pendiente' ORDER BY l.id DESC LIMIT 200");
@@ -102,6 +105,7 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
       if(!session)return reply(401,{error:'Inicia sesión'});
       const [[account]]=await pool.execute('SELECT a.id,a.nombre,a.email FROM finde_host_sessions s JOIN finde_host_accounts a ON a.id=s.host_id WHERE s.token_hash=? AND s.expires_at>NOW()',[digest(session)]);
       if(!account)return reply(401,{error:'Inicia sesión'});
+      if(route.startsWith('/hosts/pagos'))return await payouts(route,method,body,reply,account);
       if(method==='POST'&&route==='/hosts/salir'){
         await pool.execute('DELETE FROM finde_host_sessions WHERE token_hash=?',[digest(session)]);
         return reply(200,{ok:true},{'Set-Cookie':cookie('',0)});

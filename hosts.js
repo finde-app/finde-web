@@ -68,6 +68,8 @@ function renderHostDashboard(section='resumen'){
   content=`<div class="host-metrics"><article><span>Próximas llegadas</span><strong>—</strong></article><article><span>Fichas en revisión</span><strong>${pending}</strong></article><article><span>Pagos pendientes</span><strong>—</strong></article></div><div class="host-overview"><div class="host-card"><h2>Mis alojamientos</h2>${hostListingRows(stays.slice(0,4))}</div><div class="host-card"><h2>Próximas reservas</h2><p>Las reservas del anfitrión aún no están conectadas al panel.</p><button type="button" class="outline" data-host-section="reservas">Ver reservas</button></div></div>`;
  }else if(listingSection){
   content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
+ }else if(section==='pagos'){
+  content='<div id="hostPayouts" class="host-card"><p>Cargando…</p></div>';
  }else if(section==='cuenta'){
   content='<div class="host-card"><dl><dt>Nombre</dt><dd>'+hostEscape(cuenta.nombre)+'</dd><dt>Correo electrónico</dt><dd>'+hostEscape(cuenta.email)+'</dd></dl><button class="outline" type="button" onclick="hostAuth(\'recuperar\')">Recuperar contraseña</button></div>';
  }else{
@@ -75,6 +77,7 @@ function renderHostDashboard(section='resumen'){
   content='<div class="host-card"><p>'+notes[section]+'</p></div>';
  }
  hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
+ if(section==='pagos')void loadHostPayouts();
  const newButton=document.getElementById('hostNew');
  if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
  hostView.querySelectorAll('[data-host-listing]').forEach(button=>{button.onclick=()=>{
@@ -128,7 +131,7 @@ async function hostPublished(type){
  }catch{/* Existing catalogue remains available while the host API is unavailable. */}
 }
 async function hostModeration(){
- adminShell('Revisión de fichas','Revisión de fichas','Publicaciones enviadas por anfitriones.','<div class="admin-card" id="hostModeration"></div>');
+ adminShell('Revisión de fichas','Revisión de fichas','Publicaciones enviadas por anfitriones.','<div class="admin-card"><button type="button" onclick="adminPayouts()">Documentos de cobro</button></div><div class="admin-card" id="hostModeration"></div>');
  const area=document.getElementById('hostModeration');
  try{
   const data=await hostRequest('admin/fichas-anfitriones');
@@ -153,3 +156,78 @@ async function hostModeration(){
 }
 const resetMatch=location.hash.match(/^#restablecer=([a-f0-9]{64})$/);
 if(resetMatch){history.replaceState(null,'',location.pathname+location.search);hostAuth('restablecer',resetMatch[1]);}
+
+const payoutStates={revision:'En revisión',observado:'Con observaciones',aprobado:'Aprobado',pagado:'Pagado'};
+function payoutLabel(name,label,options=''){
+ return '<label>'+label+'<input name="'+name+'" required '+options+'></label>';
+}
+function payoutRows(items,admin=false){
+ return items.map(d=>'<article class="host-card"><h3>'+hostEscape(d.tipo)+' · Folio '+hostEscape(d.folio)+'</h3><p>'+hostEscape(d.referencia)+' · '+money(d.monto)+' · '+hostEscape(payoutStates[d.estado])+'</p>'+(d.nota?'<p>'+hostEscape(d.nota)+'</p>':'')+(admin?'<p>Anfitrión: '+hostEscape(d.nombre)+'</p><button class="outline" data-payout-action="pdf" data-id="'+Number(d.id)+'">Descargar PDF</button> <button class="outline" data-payout-action="banco" data-id="'+Number(d.id)+'">Ver datos bancarios</button><div data-bank-result role="status"></div>'+payoutReviewForm(d):'')+'</article>').join('')||'<p>Todavía no hay documentos de cobro.</p>';
+}
+function payoutReviewForm(d){
+ const id=Number(d.id);
+ if(d.estado==='revision')return '<form data-payout-review="'+id+'"><label>Observaciones<textarea name="nota" maxlength="500"></textarea></label><button value="aprobado">Aprobar</button> <button value="observado" class="outline">Solicitar corrección</button><p role="status"></p></form>';
+ if(d.estado==='aprobado')return '<form data-payout-review="'+id+'"><button value="pagado">Registrar pago realizado</button><p role="status"></p></form>';
+ return '';
+}
+async function loadHostPayouts(){
+ const area=document.getElementById('hostPayouts');
+ try{
+  const data=await hostRequest('hosts/pagos');
+  if(!area.isConnected)return;
+  const bank=data.cuenta;
+  area.innerHTML='<h2>Datos bancarios</h2>'+(bank?'<p>'+hostEscape(bank.titular)+' · '+hostEscape(bank.banco)+' · '+hostEscape(bank.numero)+'</p>':'<p>Aún no has registrado una cuenta.</p>')+
+   '<form data-payout-host="banco">'+payoutLabel('titular','Titular','maxlength="120"')+payoutLabel('rut','RUT del titular, sin puntos','maxlength="12" placeholder="12345678-5"')+payoutLabel('banco','Banco','maxlength="100"')+payoutLabel('tipo','Tipo de cuenta','maxlength="45"')+payoutLabel('numero','Número de cuenta','inputmode="numeric" maxlength="30"')+'<button>Guardar datos bancarios</button><p role="status"></p></form>'+
+   '<h2>Documentos de cobro</h2><p>Receptor: Certera SpA.</p><form data-payout-host="documentos"><label>Tipo de documento<select name="tipo"><option>Boleta</option><option>Factura</option></select></label>'+payoutLabel('folio','Folio','inputmode="numeric" maxlength="20"')+payoutLabel('monto','Monto en pesos chilenos','type="number" min="1" max="100000000"')+payoutLabel('referencia','Reserva o liquidación asociada','maxlength="100"')+'<label>Documento PDF, hasta 1 MB<input name="archivo" type="file" accept="application/pdf,.pdf" required></label><button>Enviar documento a revisión</button><p role="status"></p></form>'+payoutRows(data.documentos);
+  area.querySelectorAll('[data-payout-host]').forEach(form=>{form.onsubmit=async event=>{
+   event.preventDefault();
+   const button=event.submitter;
+   const status=form.querySelector('[role=status]');
+   button.disabled=true;
+   try{
+    const body=Object.fromEntries(new FormData(form));
+    if(body.archivo){
+     if(!body.archivo.size||body.archivo.size>1048576)throw Error('Adjunta un PDF de hasta 1 MB.');
+     const encoded=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(Error('No se pudo leer el PDF.'));reader.readAsDataURL(body.archivo);});
+     delete body.archivo;body.pdf=encoded;
+    }
+    await hostRequest('hosts/pagos/'+form.dataset.payoutHost,'POST',body);
+    await loadHostPayouts();
+   }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+  };});
+ }catch(error){if(area.isConnected)area.textContent=error.message;}
+}
+async function adminPayouts(){
+ adminShell('Revisión de fichas','Documentos de cobro','Revisión y registro de pagos de alojamientos y experiencias.','<button class="outline" onclick="hostModeration()">Volver a revisión de fichas</button><div class="admin-card" id="adminPayouts">Cargando…</div>');
+ const area=document.getElementById('adminPayouts');
+ try{
+  const data=await hostRequest('admin/cobros-anfitriones');
+  if(!area.isConnected)return;
+  area.innerHTML=payoutRows(data.documentos,true);
+  area.querySelectorAll('[data-payout-action]').forEach(button=>{button.onclick=async()=>{
+   const result=button.parentElement.querySelector('[data-bank-result]');
+   button.disabled=true;
+   try{
+    if(button.dataset.payoutAction==='banco'&&result.textContent){result.textContent='';button.textContent='Ver datos bancarios';return;}
+    const data=await hostRequest('admin/cobros-anfitriones/'+button.dataset.id+'/'+button.dataset.payoutAction);
+    if(data.cuenta){
+     const {titular,rut,banco,tipo,numero}=data.cuenta;
+     result.textContent=[titular,rut,banco,tipo,numero].join(' · ');
+     button.textContent='Ocultar datos bancarios';
+    }else{
+     const bytes=Uint8Array.from(atob(data.pdf),char=>char.charCodeAt(0));
+     const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+     const link=document.createElement('a');link.href=url;link.download='documento-cobro-'+Number(button.dataset.id)+'.pdf';link.click();
+     setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }
+   }catch(error){result.textContent=error.message;}finally{button.disabled=false;}
+  };});
+  area.querySelectorAll('[data-payout-review]').forEach(form=>{form.onsubmit=async event=>{
+   event.preventDefault();
+   const button=event.submitter;
+   button.disabled=true;
+   try{await hostRequest('admin/cobros-anfitriones/'+form.dataset.payoutReview,'PATCH',{estado:button.value,nota:new FormData(form).get('nota')||''});await adminPayouts();}
+   catch(error){form.querySelector('[role=status]').textContent=error.message;}finally{button.disabled=false;}
+  };});
+ }catch(error){if(area.isConnected)area.textContent=error.status===401?'Inicia sesión en Revisión de fichas para acceder a los documentos de cobro.':error.message;}
+}
