@@ -33,21 +33,72 @@ function hostAuth(mode='ingreso', resetToken=''){
   }catch(error){hostMessage(error.message);}finally{button.disabled=false;}
  };
 }
-async function openHostPortal(){
+
+const hostSections = {resumen:'Resumen',alojamientos:'Alojamientos',experiencias:'Experiencias',reservas:'Reservas',calendario:'Calendario',pagos:'Pagos',reportes:'Reportes',cuenta:'Mi cuenta'};
+const hostStates = {pendiente:'En revisión',devuelta:'Con observaciones',borrador:'Borrador',publicada:'Publicada'};
+let hostPortalData;
+let hostCurrentSection='resumen';
+
+function hostDashboardFrame(section,title,subtitle,content,action=''){
+ const menu=Object.entries(hostSections).map(([key,label])=>`<button type="button" data-host-section="${key}" ${section===key?'aria-current="page"':''}>${label}</button>`).join('');
+ hostView.innerHTML=`<div class="host-dashboard"><aside class="host-sidebar"><strong>Findito</strong><p>Panel de anfitriones</p><nav aria-label="Panel de anfitriones">${menu}</nav><button type="button" class="outline" id="hostLogout">Cerrar sesión</button></aside><section class="host-workspace"><div class="host-heading"><div><h1>${title}</h1><p>${subtitle}</p></div>${action}</div>${content}<p id="hostMessage" role="status"></p></section></div>`;
+ hostView.querySelectorAll('[data-host-section]').forEach(button=>{button.onclick=()=>renderHostDashboard(button.dataset.hostSection);});
+ document.getElementById('hostLogout').onclick=async()=>{try{await hostRequest('hosts/salir','POST',{});hostPortalData=undefined;hostAuth();}catch(error){hostMessage(error.message);}};
+}
+function hostListingRows(rows){
+ if(!rows.length)return '<p class="host-empty">Todavía no tienes fichas en esta sección.</p>';
+ return rows.map(row=>{
+  const d=hostRead(row.ficha);
+  const photo=(d.fotos||[]).find(value=>/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value));
+  return `<article class="host-listing">${photo?'<img src="'+hostEscape(photo)+'" alt="">':'<div class="host-photo-empty" aria-hidden="true">⌂</div>'}<div><h3>${hostEscape(d.titulo)}</h3><p>${hostEscape(d.ubicacion)} · ${money(d.precio)}</p><span class="host-status" data-state="${hostEscape(row.estado)}">${hostEscape(hostStates[row.estado]||row.estado)}</span>${row.nota?'<p>'+hostEscape(row.nota)+'</p>':''}</div><button type="button" class="outline" data-host-listing="${Number(row.id)}">${row.estado==='pendiente'?'Ver ficha':'Editar'}</button></article>`;
+ }).join('');
+}
+function renderHostDashboard(section='resumen'){
+ if(!hostPortalData)return openHostPortal(section);
+ hostCurrentSection=section;
+ const {cuenta,fichas}=hostPortalData;
+ const stays=fichas.filter(row=>hostRead(row.ficha).tipo==='Alojamiento');
+ const experiences=fichas.filter(row=>hostRead(row.ficha).tipo==='Experiencia');
+ const pending=fichas.filter(row=>row.estado==='pendiente').length;
+ const listingSection=['alojamientos','experiencias'].includes(section);
+ const newLabel=section==='experiencias'?'Nueva experiencia':'Nuevo alojamiento';
+ const create='<button type="button" id="hostNew">'+newLabel+'</button>';
+ let content;
+ if(section==='resumen'){
+  content=`<div class="host-metrics"><article><span>Próximas llegadas</span><strong>—</strong></article><article><span>Fichas en revisión</span><strong>${pending}</strong></article><article><span>Pagos pendientes</span><strong>—</strong></article></div><div class="host-overview"><div class="host-card"><h2>Mis alojamientos</h2>${hostListingRows(stays.slice(0,4))}</div><div class="host-card"><h2>Próximas reservas</h2><p>Las reservas del anfitrión aún no están conectadas al panel.</p><button type="button" class="outline" data-host-section="reservas">Ver reservas</button></div></div>`;
+ }else if(listingSection){
+  content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
+ }else if(section==='cuenta'){
+  content='<div class="host-card"><dl><dt>Nombre</dt><dd>'+hostEscape(cuenta.nombre)+'</dd><dt>Correo electrónico</dt><dd>'+hostEscape(cuenta.email)+'</dd></dl><button class="outline" type="button" onclick="hostAuth(\'recuperar\')">Recuperar contraseña</button></div>';
+ }else{
+  const notes={reservas:'Las reservas de tu cuenta aún no están conectadas al panel.',calendario:'La disponibilidad se registra en cada ficha. El calendario de reservas aún no está conectado.',pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
+  content='<div class="host-card"><p>'+notes[section]+'</p></div>';
+ }
+ hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
+ const newButton=document.getElementById('hostNew');
+ if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
+ hostView.querySelectorAll('[data-host-listing]').forEach(button=>{button.onclick=()=>{
+  const row=fichas.find(item=>Number(item.id)===Number(button.dataset.hostListing));
+  if(row.estado==='pendiente'){
+   hostDashboardFrame(section,'Ficha en revisión','Administración revisará tu ficha antes de publicarla.',renderHostCard(row),'<button type="button" class="outline" onclick="renderHostDashboard(hostCurrentSection)">Volver</button>');
+  }else hostEditor(row);
+ };});
+}
+async function openHostPortal(section='resumen'){
  hostScreen('Anfitriones','<p>Cargando…</p>');
+ const loading=hostView.firstElementChild;
  try{
   const data=await hostRequest('hosts/fichas');
-  const rows=data.fichas.map(row=>'<div class="box"><b>'+hostEscape(hostRead(row.ficha).titulo)+'</b><p>'+hostEscape(({pendiente:'En revisión',devuelta:'Devuelta con observaciones',borrador:'Borrador',publicada:'Publicada'})[row.estado])+'</p>'+(row.nota?'<p>'+hostEscape(row.nota)+'</p>':'')+(row.estado==='pendiente'?'':'<button type="button" data-host-edit="'+Number(row.id)+'">Editar ficha</button>')+'</div>').join('');
-  hostScreen('Hola, '+hostEscape(data.cuenta.nombre),'<button id="hostNew">Crear ficha</button> <button id="hostLogout" class="outline">Cerrar sesión</button>'+rows);
-  document.getElementById('hostNew').onclick=()=>hostEditor();
-  document.getElementById('hostLogout').onclick=async()=>{try{await hostRequest('hosts/salir','POST',{});hostAuth();}catch(error){hostMessage(error.message);}};
-  document.querySelectorAll('[data-host-edit]').forEach(button=>{button.onclick=()=>hostEditor(data.fichas.find(row=>Number(row.id)===Number(button.dataset.hostEdit)));});
- }catch(error){hostAuth();if(error.status!==401)hostMessage(error.message);}
+  if(!loading.isConnected)return;
+  hostPortalData=data;
+  renderHostDashboard(section);
+ }catch(error){if(!loading.isConnected)return;hostAuth();if(error.status!==401)hostMessage(error.message);}
 }
-function hostEditor(row){
- const data=row?hostRead(row.ficha):{};
+
+function hostEditor(row,type='Alojamiento'){
+ const data=row?hostRead(row.ficha):{tipo:type};
  const input=(name,label,max)=>'<label>'+label+'<input name="'+name+'" required maxlength="'+max+'" value="'+hostEscape(data[name])+'"></label>';
- hostScreen('Ficha de alojamiento o experiencia','<form id="hostEditor"><label>Tipo<select name="tipo"><option>Alojamiento</option><option'+(data.tipo==='Experiencia'?' selected':'')+'>Experiencia</option></select></label>'+input('titulo','Nombre',160)+input('ubicacion','Ubicación',160)+input('precio','Precio en pesos chilenos',9)+'<label>Descripción<textarea name="descripcion" required maxlength="4000">'+hostEscape(data.descripcion)+'</textarea></label><label>Disponibilidad<textarea name="disponibilidad" required maxlength="1000">'+hostEscape(data.disponibilidad)+'</textarea></label><label>Fotos JPG (hasta 4, máximo 300 KB cada una)<input id="hostPhotos" type="file" accept="image/jpeg" multiple></label><p>Fotos guardadas: '+(data.fotos?.length||0)+'. Si seleccionas nuevas, se reemplazan.</p><button value="draft">Guardar borrador</button> <button value="submit">Enviar a revisión</button></form><button class="outline" onclick="openHostPortal()">Volver a mis fichas</button>');
+ hostScreen('Ficha de alojamiento o experiencia','<form id="hostEditor"><label>Tipo<select name="tipo"><option>Alojamiento</option><option'+(data.tipo==='Experiencia'?' selected':'')+'>Experiencia</option></select></label>'+input('titulo','Nombre',160)+input('ubicacion','Ubicación',160)+input('precio','Precio en pesos chilenos',9)+'<label>Descripción<textarea name="descripcion" required maxlength="4000">'+hostEscape(data.descripcion)+'</textarea></label><label>Disponibilidad<textarea name="disponibilidad" required maxlength="1000">'+hostEscape(data.disponibilidad)+'</textarea></label><label>Fotos JPG (hasta 4, máximo 300 KB cada una)<input id="hostPhotos" type="file" accept="image/jpeg" multiple></label><p>Fotos guardadas: '+(data.fotos?.length||0)+'. Si seleccionas nuevas, se reemplazan.</p><button value="draft">Guardar borrador</button> <button value="submit">Enviar a revisión</button></form><button class="outline" onclick="renderHostDashboard(hostCurrentSection)">Volver a mis fichas</button>');
  document.getElementById('hostEditor').onsubmit=async event=>{
   event.preventDefault();
   const form=event.currentTarget,button=event.submitter;
@@ -57,7 +108,7 @@ function hostEditor(row){
    if(files.length>4||files.some(item=>item.type!=='image/jpeg'||item.size>300000))throw new Error('Selecciona hasta cuatro fotos JPG de máximo 300 KB cada una.');
    const photos=files.length?await Promise.all(files.map(file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('No se pudo leer la foto.'));reader.readAsDataURL(file);} ))):data.fotos||[];
    await hostRequest('hosts/fichas','POST',{...Object.fromEntries(new FormData(form)),id:row?Number(row.id):null,fotos:photos,enviar:button.value==='submit'});
-   await openHostPortal();
+   await openHostPortal(data.tipo==='Experiencia'?'experiencias':'alojamientos');
   }catch(error){hostMessage(error.message);}finally{button.disabled=false;}
  };
 }
