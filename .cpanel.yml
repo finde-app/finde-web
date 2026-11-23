@@ -4,3 +4,4 @@ deployment:
     - export DEPLOYPATH=/home/omouxppn/finde-v19-preview/
     - /bin/mkdir -p "$DEPLOYPATH"
     - /bin/cp index.html app.js styles.css provider-interest.js hosts.js findito.png "$DEPLOYPATH"
+    - /bin/cp backend/app.js backend/hosts.js backend/package.json /home/omouxppn/finde-backend-v19/
