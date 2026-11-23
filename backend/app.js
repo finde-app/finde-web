@@ -13,7 +13,7 @@ const loginAttempts=new Map();
 const ADMIN_PASSWORD=process.env.ADMIN_PASSWORD||'';
 const ADMIN_SESSION_SECRET=process.env.ADMIN_SESSION_SECRET||'';
 function signed(value){return crypto.createHmac('sha256',ADMIN_SESSION_SECRET).update(value).digest('hex');}
-function parseCookie(req){const m=(req.headers.cookie||'').match(/(?:^|;\\s*)finde_admin=([^;]+)/);return m?decodeURIComponent(m[1]):'';}
+function parseCookie(req){const m=(req.headers.cookie||'').match(/(?:^|;\s*)finde_admin=([^;]+)/);return m?decodeURIComponent(m[1]):'';}
 function authorized(req){if(!ADMIN_PASSWORD||ADMIN_PASSWORD.length<16||ADMIN_SESSION_SECRET.length<32)return false;const cookie=parseCookie(req);const parts=cookie.split('.');if(parts.length!==2)return false;const sig=signed(parts[0]);if(parts[1].length!==sig.length||!crypto.timingSafeEqual(Buffer.from(parts[1]),Buffer.from(sig)))return false;const expiry=sessions.get(parts[0]);if(!expiry||expiry<Date.now()){sessions.delete(parts[0]);return false;}return true;}
 function sameOrigin(req){return req.headers.origin===ORIGIN;}
 function adminCookie(value,maxAge){return 'finde_admin='+value+'; HttpOnly; Secure; SameSite=Strict; Path=/api/admin; Max-Age='+maxAge;}
@@ -24,14 +24,16 @@ function json(res,status,data,headers={}){res.writeHead(status,{'Content-Type':'
 function headers(req){return req.headers.origin===ORIGIN?{'Access-Control-Allow-Origin':ORIGIN,'Vary':'Origin','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type'}:{};}
 function clean(v,max){return typeof v==='string'?v.trim().slice(0,max+1):'';}
 function validEmail(s){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);}
-function readBody(req){return new Promise((resolve,reject)=>{let size=0,chunks=[];req.on('data',c=>{size+=c.length;if(size>MAX_BODY){reject(new Error('too_large'));req.destroy();return;}chunks.push(c);});req.on('end',()=>{try{resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))}catch{reject(new Error('invalid_json'))}});req.on('error',reject);});}
+function readBody(req,limit=MAX_BODY){return new Promise((resolve,reject)=>{let size=0,chunks=[];req.on('data',c=>{size+=c.length;if(size>limit){reject(new Error('too_large'));req.destroy();return;}chunks.push(c);});req.on('end',()=>{try{resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))}catch{reject(new Error('invalid_json'))}});req.on('error',reject);});}
+const hosts=require("./hosts")({pool,json,origin:ORIGIN,authorized,readBody});
 const server=http.createServer(async(req,res)=>{
  const path=new URL(req.url,'http://localhost').pathname.replace(/\/+$/,'')||'/';
+ if(await hosts(req,res,path))return;
  if(req.method==='GET'&&['/','/api'].includes(path))return json(res,200,{proyecto:'Finde',estado:'Backend funcionando',version:'1.2-v19'});
  if(req.method==='GET'&&['/db-test','/api/db-test'].includes(path)){try{await pool.query('SELECT 1');return json(res,200,{proyecto:'Finde',base_datos:'Conectada correctamente',estado:'OK'});}catch(e){console.error('DB test',e.message);return json(res,500,{estado:'ERROR'});}}
  if(req.method==='GET'&&['/alojamientos','/api/alojamientos'].includes(path)){try{const [rows]=await pool.query("SELECT id,titulo,descripcion,destino,capacidad,dormitorios,camas,precio_noche,reglas,hora_entrada,hora_salida,politica_cancelacion FROM alojamientos WHERE estado='aprobado' ORDER BY creado_en DESC LIMIT 100");return json(res,200,{proyecto:'Finde',total:rows.length,alojamientos:rows});}catch(e){console.error('Alojamientos',e.message);return json(res,500,{error:'No se pudieron consultar los alojamientos'});}}
  if(path.startsWith('/api/admin/')||path.startsWith('/admin/')){
-  const sub=path.replace(/^\\/(?:api\\/)?admin\\//,'');
+  const sub=path.replace(/^\/(?:api\/)?admin\//,'');
   if(!adminConfigured())return json(res,503,{error:'Administración no configurada en el servidor'});
   if(req.method!=='GET'&&!sameOrigin(req))return json(res,403,{error:'Origen no autorizado'});
   if(req.method==='POST'&&sub==='login'){
@@ -55,7 +57,7 @@ const server=http.createServer(async(req,res)=>{
    try{const [rows]=await pool.query('SELECT id,nombre_contacto,correo,tipo_servicio,nombre_servicio,comuna,comentario,estado,fecha_solicitud FROM solicitudes_proveedores ORDER BY fecha_solicitud DESC LIMIT 200');return json(res,200,{solicitudes:rows});}
    catch(e){console.error('Admin solicitudes',e.message);return json(res,500,{error:'No se pudieron consultar las solicitudes'});}
   }
-  const match=sub.match(/^solicitudes\\/(\\d+)$/);
+  const match=sub.match(/^solicitudes\/(\d+)$/);
   if(req.method==='PATCH'&&match){
    let b;try{b=await readBody(req)}catch{return json(res,400,{error:'Solicitud inválida'})}
    if(!b||!['pendiente','en_revision','aprobado','rechazado'].includes(b.estado))return json(res,400,{error:'Estado inválido'});
