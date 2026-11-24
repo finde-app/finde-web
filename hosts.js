@@ -13,21 +13,43 @@ function hostScreen(title, contents){
  hostView.innerHTML='<section class="form wideform"><button class="outline" onclick="home()">Volver a inicio</button><h1>'+title+'</h1>'+contents+'<p id="hostMessage" role="status"></p></section>';
 }
 function hostMessage(message){const el=document.getElementById('hostMessage');if(el)el.textContent=message;}
+
+function hostWelcome(title, content, heading, steps){
+ hostView.innerHTML=`<section class="host-welcome"><div class="host-welcome-body"><h1>${title}</h1>${content}<p id="hostMessage" role="status"></p></div><aside class="host-welcome-photo"><div><h2>${heading}</h2><ol>${steps.map(step=>'<li>'+step+'</li>').join('')}</ol></div></aside></section>`;
+}
+function hostFirstListing(){
+ hostWelcome('Crea tu primera ficha',`<p>¿Qué quieres ofrecer en Findito?</p>
+ <article><h2>Alojamiento</h2><p>Publica una cabaña, casa, departamento u otro hospedaje.</p><button type="button" data-host-first="Alojamiento">Agregar alojamiento</button></article>
+ <article><h2>Experiencia</h2><p>Ofrece un tour, actividad o experiencia local.</p><button type="button" data-host-first="Experiencia">Agregar experiencia</button></article>
+ <button type="button" class="outline" onclick="renderHostDashboard()">Mi panel</button>`,'Cómo publicar',['Completa tu ficha','Envíala a revisión','Findito revisa y publica']);
+ hostView.querySelectorAll('[data-host-first]').forEach(button=>{button.onclick=()=>hostEditor(undefined,button.dataset.hostFirst);});
+}
+
 function hostAuth(mode='ingreso', resetToken=''){
  const names={ingreso:'Iniciar sesión',registro:'Crear cuenta',recuperar:'Recuperar contraseña',restablecer:'Restablecer contraseña'};
  const name=mode==='registro'?'<label>Nombre<input name="name" required maxlength="120" autocomplete="name"></label>':'';
  const email=mode==='restablecer'?'':'<label>Correo electrónico<input name="email" type="email" required autocomplete="email" maxlength="180"></label>';
  const password=mode==='recuperar'?'':'<label>Contraseña<input name="password" type="password" required minlength="12" autocomplete="'+(mode==='ingreso'?'current-password':'new-password')+'"></label>';
+ if(mode==='registro'){
+  hostWelcome('Crea tu cuenta de anfitrión','<p>Publica un alojamiento o una experiencia en Findito.</p><form id="hostAuth">'+name.replace('>Nombre<','>Nombre completo<')+email+password+'<small>Mínimo 12 caracteres</small><label>Confirmar contraseña<input name="confirmPassword" type="password" required minlength="12" autocomplete="new-password"></label><button>Crear cuenta</button></form><button class="outline" type="button" id="hostReturnLogin">Ya tengo cuenta</button>','Después de registrarte',['Crea tu ficha','Envíala a revisión','Findito revisa y publica']);
+  document.getElementById('hostReturnLogin').onclick=()=>hostAuth();
+ }else{
  hostScreen(names[mode],'<form id="hostAuth">'+name+email+password+'<button>'+names[mode]+'</button></form><button class="outline" onclick="hostAuth(\'ingreso\')">Iniciar sesión</button> <button class="outline" onclick="hostAuth(\'registro\')">Crear cuenta</button> <button class="outline" onclick="hostAuth(\'recuperar\')">Olvidé mi contraseña</button>');
+ }
  document.getElementById('hostAuth').onsubmit=async event=>{
   event.preventDefault();
   const form=event.currentTarget,button=form.querySelector('button');
   const data=Object.fromEntries(new FormData(form));
+  if(mode==='registro'){
+   if(data.password!==data.confirmPassword){hostMessage('Las contraseñas no coinciden.');form.elements.confirmPassword.focus();return;}
+   delete data.confirmPassword;
+  }
   if(resetToken)data.token=resetToken;
   button.disabled=true;
   try{
    const result=await hostRequest('hosts/'+mode,'POST',data);
-   if(mode==='ingreso'||mode==='registro')await openHostPortal();
+   if(mode==='registro')await openHostPortal('primera-ficha');
+   else if(mode==='ingreso')await openHostPortal();
    else if(mode==='restablecer'){hostAuth();hostMessage(result.mensaje);}
    else hostMessage(result.mensaje);
   }catch(error){hostMessage(error.message);}finally{button.disabled=false;}
@@ -94,7 +116,8 @@ async function openHostPortal(section='resumen'){
   const data=await hostRequest('hosts/fichas');
   if(!loading.isConnected)return;
   hostPortalData=data;
-  renderHostDashboard(section);
+  if(section==='primera-ficha')hostFirstListing();
+  else renderHostDashboard(section);
  }catch(error){if(!loading.isConnected)return;hostAuth();if(error.status!==401)hostMessage(error.message);}
 }
 
