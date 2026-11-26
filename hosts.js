@@ -126,6 +126,86 @@ function hostListingRows(rows){
   return `<article class="host-listing">${photo?'<img src="'+hostEscape(photo)+'" alt="">':'<div class="host-photo-empty" aria-hidden="true">⌂</div>'}<div><h3>${hostEscape(d.titulo)}</h3><p>${hostEscape(d.ubicacion)} · ${money(d.precio)}</p><span class="host-status" data-state="${hostEscape(row.estado)}">${hostEscape(hostStates[row.estado]||row.estado)}</span>${row.nota?'<p>'+hostEscape(row.nota)+'</p>':''}</div><button type="button" class="outline" data-host-listing="${Number(row.id)}">${row.estado==='pendiente'?'Ver ficha':'Editar'}</button></article>`;
  }).join('');
 }
+const hostCalendarMonth=new Intl.DateTimeFormat('es-CL',{month:'long',year:'numeric',timeZone:'UTC'});
+const hostCalendarDay=new Intl.DateTimeFormat('es-CL',{dateStyle:'full',timeZone:'UTC'});
+function hostCalendarToday(){
+ const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Santiago',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts();
+ const date=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+ return date.year+'-'+date.month+'-'+date.day;
+}
+function hostCalendarBookings(bookings,key){
+ return bookings.filter(booking=>booking.inicio<=key&&key<=(booking.fin||booking.inicio))
+  .sort((a,b)=>(a.hora||'99:99').localeCompare(b.hora||'99:99'));
+}
+function hostCalendarCount(count){
+ return count===1?'1 reserva':count+' reservas';
+}
+function renderHostCalendar(area,bookings){
+ const today=hostCalendarToday();
+ let month=new Date(today.slice(0,7)+'-01T12:00:00Z');
+ let selected=today;
+ const dayKey=date=>date.toISOString().slice(0,10);
+ function renderDay(){
+  const detail=area.querySelector('.host-calendar-detail');
+  const rows=hostCalendarBookings(bookings,selected);
+  detail.hidden=!rows.length;
+  detail.innerHTML=rows.length?`<h3>${hostCalendarDay.format(new Date(selected+'T12:00:00Z'))} · ${hostCalendarCount(rows.length)}</h3>
+   ${rows.map(booking=>`<details><summary><span>${hostEscape(booking.hora||'Sin hora')}</span><strong>${hostEscape(booking.titulo)}</strong><span>${hostEscape(booking.huesped)}</span><span>${hostEscape(booking.estado)}</span></summary>
+    <p>${booking.fin&&booking.fin!==booking.inicio?'Llegada: '+hostEscape(booking.inicio)+' · Salida: '+hostEscape(booking.fin):'Fecha: '+hostEscape(booking.inicio)}</p>
+   </details>`).join('')}`:'';
+  area.querySelectorAll('[data-calendar-day]').forEach(button=>{
+   button.setAttribute('aria-pressed',String(button.dataset.calendarDay===selected));
+  });
+ }
+ function render(){
+  const monthKey=dayKey(month).slice(0,7);
+  const start=new Date(month);
+  start.setUTCDate(1-(month.getUTCDay()+6)%7);
+  const last=new Date(Date.UTC(month.getUTCFullYear(),month.getUTCMonth()+1,0,12));
+  const weeks=Math.ceil(((month.getUTCDay()+6)%7+last.getUTCDate())/7);
+  let hasBookings=false;
+  const rows=Array.from({length:weeks},(_,week)=>'<tr>'+Array.from({length:7},(_,day)=>{
+   const date=new Date(start);
+   date.setUTCDate(start.getUTCDate()+week*7+day);
+   const key=dayKey(date);
+   const inMonth=key.startsWith(monthKey);
+   const count=inMonth?hostCalendarBookings(bookings,key).length:0;
+   hasBookings ||= Boolean(count);
+   const dateLabel=hostCalendarDay.format(date);
+   const number=`<time datetime="${key}"${key===today?' aria-current="date"':''}>${date.getUTCDate()}</time>`;
+   return `<td${inMonth?'':' class="host-calendar-muted"'}>${count?`<button type="button" data-calendar-day="${key}" aria-label="${dateLabel}, ${hostCalendarCount(count)}">${number}<span>${hostCalendarCount(count)}</span></button>`:number}</td>`;
+  }).join('')+'</tr>').join('');
+  area.innerHTML=`<div class="host-calendar-toolbar">
+   <button class="outline" type="button" data-calendar-step="-1" aria-label="Mes anterior">‹</button>
+   <h2 id="host-calendar-month" aria-live="polite">${hostCalendarMonth.format(month)}</h2>
+   <button class="outline" type="button" data-calendar-step="1" aria-label="Mes siguiente">›</button>
+   <button class="outline" type="button" data-calendar-today>Hoy</button>
+  </div>
+  <div class="host-calendar-viewport"><table aria-labelledby="host-calendar-month"><thead><tr>${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(day=>'<th scope="col">'+day+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+  ${hasBookings?'':'<p class="host-calendar-empty">No hay reservas para este mes</p>'}
+  <section class="host-calendar-detail" aria-label="Reservas del día" aria-live="polite" hidden></section>`;
+  for(const button of area.querySelectorAll('[data-calendar-step]')){
+   const step=Number(button.dataset.calendarStep);
+   button.onclick=()=>{
+    month.setUTCMonth(month.getUTCMonth()+step);
+    selected='';
+    render();
+    area.querySelector('[data-calendar-step="'+step+'"]').focus();
+   };
+  }
+  area.querySelector('[data-calendar-today]').onclick=()=>{
+   month=new Date(today.slice(0,7)+'-01T12:00:00Z');
+   selected=today;
+   render();
+   area.querySelector('[data-calendar-today]').focus();
+  };
+  area.querySelectorAll('[data-calendar-day]').forEach(button=>{
+   button.onclick=()=>{selected=button.dataset.calendarDay;renderDay();};
+  });
+  if(selected.startsWith(monthKey))renderDay();
+ }
+ render();
+}
 function renderHostDashboard(section='resumen'){
  if(!hostPortalData)return openHostPortal(section);
  hostCurrentSection=section;
@@ -141,16 +221,19 @@ function renderHostDashboard(section='resumen'){
   content=`<div class="host-metrics"><article><span>Próximas llegadas</span><strong>—</strong></article><article><span>Fichas en revisión</span><strong>${pending}</strong></article><article><span>Pagos pendientes</span><strong>—</strong></article></div><div class="host-overview"><div class="host-card"><h2>Mis alojamientos</h2>${hostListingRows(stays.slice(0,4))}</div><div class="host-card"><h2>Próximas reservas</h2><p>Las reservas del anfitrión aún no están conectadas al panel.</p><button type="button" class="outline" data-host-section="reservas">Ver reservas</button></div></div>`;
  }else if(listingSection){
   content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
+ }else if(section==='calendario'){
+  content='<div id="hostCalendar" class="host-card host-calendar"></div>'+(Array.isArray(hostPortalData.reservas)?'':'<p class="host-calendar-source">Las reservas todavía no están conectadas al calendario de anfitriones.</p>');
  }else if(section==='pagos'){
   content='<div id="hostPayouts"><p>Cargando…</p></div>';
  }else if(section==='cuenta'){
   content='<div class="host-card"><dl><dt>Nombre</dt><dd>'+hostEscape(cuenta.nombre)+'</dd><dt>Correo electrónico</dt><dd>'+hostEscape(cuenta.email)+'</dd></dl><button class="outline" type="button" onclick="hostAuth(\'recuperar\')">Recuperar contraseña</button></div>';
  }else{
-  const notes={reservas:'Las reservas de tu cuenta aún no están conectadas al panel.',calendario:'La disponibilidad se registra en cada ficha. El calendario de reservas aún no está conectado.',pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
+  const notes={reservas:'Las reservas de tu cuenta aún no están conectadas al panel.',pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
   content='<div class="host-card"><p>'+notes[section]+'</p></div>';
  }
  hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
  if(section==='pagos')void loadHostPayouts();
+ if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas||[]);
  const newButton=document.getElementById('hostNew');
  if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
  hostView.querySelectorAll('[data-host-listing]').forEach(button=>{button.onclick=()=>{

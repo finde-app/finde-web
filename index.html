@@ -98,4 +98,25 @@
 .host-payout-empty{text-align:center;color:#496169;padding:16px 0;margin:0}
 @media(max-width:1000px){.host-payout-grid{grid-template-columns:1fr}}
 @media(max-width:420px){.host-payout-fields{grid-template-columns:1fr}}
-</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=mobile-photos-1"></script></body></html>
+
+.host-calendar{padding:clamp(12px,2vw,24px)}
+.host-calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
+.host-calendar-toolbar h2{margin:0;text-align:center;text-transform:capitalize;font-size:clamp(1rem,3vw,1.65rem)}
+.host-calendar-toolbar button{padding:6px 12px;min-height:38px}
+.host-calendar-viewport{overflow:auto;border:1px solid #caddd9;border-radius:10px}
+.host-calendar table{border-collapse:collapse;width:100%;min-width:290px;table-layout:fixed;text-align:center}
+.host-calendar th{background:#edf6f3;padding:9px 2px}
+.host-calendar td{height:clamp(42px,6vw,66px);border-top:1px solid #d8e7e4;border-left:1px solid #d8e7e4}
+.host-calendar td:first-child{border-left:0}
+.host-calendar time{display:inline-grid;place-items:center;min-width:25px;min-height:25px}
+.host-calendar time[aria-current=date]{border-radius:50%;background:#007963;color:white}
+.host-calendar-muted{color:#667b80;background:#fafcfb}
+.host-calendar td button{display:grid;justify-items:center;margin:auto;padding:3px;color:#005b4c;background:#e2f5ef;width:94%;font-size:clamp(.68rem,1.3vw,.9rem)}
+.host-calendar td button[aria-pressed=true]{outline:2px solid #007963;outline-offset:-2px}
+.host-calendar-empty{margin:16px 0 0;padding:14px;border-radius:9px;background:#e6f6f1;font-weight:650}
+.host-calendar-source{color:#4e666a;font-size:.9rem}
+.host-calendar-detail h3{margin:18px 0 8px;text-transform:capitalize}
+.host-calendar-detail details{border-top:1px solid #d8e7e4;padding:10px 2px}
+.host-calendar-detail summary{cursor:pointer}
+.host-calendar-detail summary>*{margin-right:12px}
+</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=host-calendar-1"></script></body></html>
