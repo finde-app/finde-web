@@ -26,12 +26,6 @@ function validFile(key,file) {
   return file.tipo==='image/jpeg' && bytes[0]===255 && bytes[1]===216 && bytes[2]===255;
 }
 module.exports = function businessRoutes(pool) {
-  let schema;
-  function ensure() {
-    schema ||= pool.query("CREATE TABLE IF NOT EXISTS finde_host_business (host_id BIGINT UNSIGNED PRIMARY KEY, datos JSON NOT NULL, archivos JSON NOT NULL, estado VARCHAR(20) NOT NULL, observacion VARCHAR(1000) NOT NULL DEFAULT '', verificada DATETIME NULL, version INT UNSIGNED NOT NULL DEFAULT 1, INDEX (estado)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4")
-      .catch(error=>{schema=undefined;throw error;});
-    return schema;
-  }
   async function reviewed(hostIds) {
     if (!hostIds.length) return new Set();
     try {
@@ -43,7 +37,6 @@ module.exports = function businessRoutes(pool) {
     }
   }
   async function handle(route,method,body,reply,account) {
-    await ensure();
     const admin=route.startsWith('/admin/');
     const match=route.match(/^\/admin\/empresas-anfitriones\/([1-9]\d{0,14})(?:\/archivo\/([a-z]+))?$/);
     const hostFile=route.match(/^\/hosts\/empresa\/archivo\/([a-z]+)$/)?.[1];
