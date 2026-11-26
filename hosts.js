@@ -228,12 +228,13 @@ function renderHostDashboard(section='resumen'){
  }else if(section==='pagos'){
   content='<div id="hostPayouts"><p>Cargando…</p></div>';
  }else if(section==='cuenta'){
-  content='<div class="host-card"><dl><dt>Nombre</dt><dd>'+hostEscape(cuenta.nombre)+'</dd><dt>Correo electrónico</dt><dd>'+hostEscape(cuenta.email)+'</dd></dl><button class="outline" type="button" onclick="hostAuth(\'recuperar\')">Recuperar contraseña</button></div>';
+  content='<div id="hostCompany"><p>Cargando…</p></div>';
  }else{
   const notes={reservas:'Las reservas de tu cuenta aún no están conectadas al panel.',pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
   content='<div class="host-card"><p>'+notes[section]+'</p></div>';
  }
  hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
+ if(section==='cuenta')void loadHostCompany();
  if(section==='pagos')void loadHostPayouts();
  if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas);
  const newButton=document.getElementById('hostNew');
@@ -333,10 +334,185 @@ function hostEditor(row,type='Alojamiento'){
   }catch(error){hostMessage(error.message);}finally{buttons.forEach(control=>{control.disabled=false;});}
  };
 }
+const companyFields={
+ razon:['Razón social',160],rut:['RUT de la empresa',16],giro:['Giro comercial',180],
+ direccion:['Dirección de la empresa',220],comuna:['Comuna',100],region:['Región',100],
+ telefono:['Teléfono de la empresa',28,'tel'],whatsapp:['WhatsApp de la empresa',28,'tel'],
+ representante:['Nombre completo del representante legal',160],
+ contacto:['Teléfono de contacto',28,'tel'],whatsappContacto:['WhatsApp de contacto',28,'tel']
+};
+const companyFiles={
+ registro:['Constitución o registro de la empresa','Ej.: Certificado de Estatuto Actualizado o copia de la inscripción en el Registro de Comercio.'],
+ poder:['Documento que acredita la representación legal','Ej.: Certificado de Vigencia de Poder o copia del extracto de la escritura donde consten las facultades del representante.'],
+ cedula:['Cédula de identidad del representante legal','Adjunta ambos lados en un PDF o usa los dos campos de foto.'],
+ frente:['Foto del frente',''],reverso:['Foto del reverso',''],
+ logo:['Logo de la empresa (opcional)','Visible en tu panel privado.']
+};
+const companyStates={borrador:'Borrador',revision:'En revisión',observada:'Con observaciones',verificada:'Empresa verificada por Findito'};
+const companySeal='<strong class="host-company-seal">✓ Empresa verificada por Findito</strong>';
+function companyValues(keys,data,edit){
+ return keys.map(key=>{
+  const [label,length,type='text']=companyFields[key];
+  const value=data[key]||'';
+  return edit?'<label>'+label+'<input type="'+type+'" name="'+key+'" maxlength="'+length+'" value="'+hostEscape(value)+'"></label>':
+   '<div class="host-company-row"><dt>'+label+'</dt><dd>'+hostEscape(key==='rut'&&value?'••••'+value.slice(-5):value||'—')+'</dd></div>';
+ }).join('');
+}
+function companySavedFiles(files,path,same){
+ return Object.entries(companyFiles).filter(([key])=>files[key]||(same&&key==='poder'&&files.registro)).map(([key,[label]])=>{
+  const actual=same&&key==='poder'?'registro':key;
+  return '<div class="host-company-file-row"><span><strong>'+label+'</strong><br>'+hostEscape(files[actual])+'</span><a class="host-company-file" href="'+path+'/archivo/'+actual+'" data-company-file>Ver archivo</a></div>';
+ }).join('');
+}
+function bindCompanyFiles(area){
+ area.querySelectorAll('[data-company-file]').forEach(link=>link.onclick=async event=>{
+  event.preventDefault();
+  try{
+   const {nombre,tipo,base64}=await hostRequest(link.getAttribute('href'));
+   const bytes=Uint8Array.from(atob(base64),char=>char.charCodeAt(0));
+   const url=URL.createObjectURL(new Blob([bytes],{type:tipo}));
+   const download=document.createElement('a');
+   download.href=url;download.download=nombre;download.click();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }catch(error){link.closest('.host-company-file-row').insertAdjacentText('beforeend',error.message);}
+ });
+}
+function companyReadFile(file){
+ return new Promise((resolve,reject)=>{
+  const reader=new FileReader();
+  reader.onload=()=>resolve(reader.result.split(',')[1]);
+  reader.onerror=()=>reject(new Error('No se pudo leer '+file.name));
+  reader.readAsDataURL(file);
+ });
+}
+async function loadHostCompany(){
+ const area=document.getElementById('hostCompany');
+ let company;
+ try{({empresa:company}=await hostRequest('hosts/empresa'));}
+ catch(error){area.textContent=error.message;return;}
+ if(!area.isConnected)return;
+ let enabled=Boolean(company);
+ let active='perfil';
+ let editing=false;
+ const groups=[
+  ['Datos de la empresa',['razon','rut','giro','direccion','comuna','region']],
+  ['Contacto de la empresa',['telefono','whatsapp']],
+  ['Representante legal y contacto',['representante','contacto','whatsappContacto']]
+ ];
+ function render(message=''){
+  area.innerHTML='<label class="host-company-check"><input type="checkbox" data-company-enabled '+(enabled?'checked ':'')+(company?'disabled':'')+'> Tengo empresa</label>'+
+   '<nav class="host-company-tabs" aria-label="Mi cuenta"><button type="button" data-company-tab="perfil" aria-pressed="'+(active==='perfil')+'">Perfil</button>'+
+   (enabled?'<button type="button" data-company-tab="empresa" aria-pressed="'+(active==='empresa')+'">Empresa</button>':'')+'</nav><div data-company-content></div><p role="status" data-company-status></p>';
+  const status=area.querySelector('[data-company-status]');
+  status.textContent=message;
+  area.querySelector('[data-company-enabled]').onchange=event=>{enabled=event.target.checked;active=enabled?'empresa':'perfil';render();};
+  area.querySelectorAll('[data-company-tab]').forEach(button=>button.onclick=()=>{active=button.dataset.companyTab;editing=false;render();});
+  const panel=area.querySelector('[data-company-content]');
+  if(active==='perfil'){
+   const {nombre,email}=hostPortalData.cuenta;
+   const initials=nombre.trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase();
+   panel.innerHTML='<div class="host-company-grid"><section class="host-card"><h2>Datos del perfil</h2><span class="host-company-avatar" aria-hidden="true">'+hostEscape(initials)+'</span><dl><div class="host-company-row"><dt>Nombre completo</dt><dd>'+hostEscape(nombre)+'</dd></div><div class="host-company-row"><dt>Correo electrónico</dt><dd>'+hostEscape(email)+'</dd></div></dl></section><section class="host-card"><h2>Seguridad</h2><p>Solicita un enlace por correo para restablecer tu contraseña.</p><button type="button" class="outline" data-company-recover>Recuperar contraseña</button></section></div>';
+   panel.querySelector('[data-company-recover]').onclick=()=>hostAuth('recuperar');
+   return;
+  }
+  const data=company?.datos||{};
+  const files=company?.archivos||{};
+  const state=company?.estado;
+  if(company&&!editing){
+   const date=company.verificada?new Date(company.verificada).toLocaleDateString('es-CL'):'';
+   panel.innerHTML='<div class="host-company-heading"><p>'+ (state==='verificada'?companySeal+' <span> · '+hostEscape(date)+'</span>':hostEscape(companyStates[state]))+'</p><button type="button" class="outline" data-company-edit>Editar datos de la empresa</button></div>'+
+    (company.observacion?'<p class="host-card">'+hostEscape(company.observacion)+'</p>':'')+
+    '<div class="host-company-grid">'+groups.map(([title,keys])=>'<section class="host-card"><h2>'+title+'</h2><dl>'+companyValues(keys,data,false)+'</dl></section>').join('')+'</div>'+
+    '<section class="host-card"><h2>Documentos de acreditación</h2>'+(companySavedFiles(files,'hosts/empresa',data.mismoDocumento)||'<p>Aún no hay archivos adjuntos.</p>')+'</section>';
+   panel.querySelector('[data-company-edit]').onclick=()=>{editing=true;render();};
+   bindCompanyFiles(panel);
+   return;
+  }
+  const inputFile=key=>{
+   const [label,help]=companyFiles[key];
+   const pdf=['registro','poder','cedula'].includes(key);
+   return '<label class="host-company-upload" data-upload="'+key+'"><strong>'+label+'</strong>'+
+    (help?'<span>'+help+'</span>':'')+(files[key]?'<span>Guardado: '+hostEscape(files[key])+'</span>':'')+
+    '<input type="file" name="'+key+'" accept="'+(pdf?'application/pdf,.pdf':'image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif')+'">'+
+    (pdf?'<small>PDF de hasta 1 MB</small>':'')+'</label>';
+  };
+  panel.innerHTML='<form class="host-company-form"><h2>'+(company?'Editar empresa':'Registrar empresa')+'</h2>'+
+   (state==='verificada'?'<p>Al guardar cambios, el sello se ocultará hasta que Findito revise nuevamente la empresa.</p>':'')+
+   '<div class="host-company-grid">'+groups.map(([title,keys])=>'<section class="host-card"><h3>'+title+'</h3><div class="host-company-fields">'+companyValues(keys,data,true)+'</div></section>').join('')+'</div>'+
+   '<section class="host-card"><h3>Documentos de acreditación</h3><div class="host-company-fields">'+inputFile('registro')+inputFile('poder')+'</div>'+
+   '<label class="host-company-check"><input name="mismoDocumento" type="checkbox" '+(data.mismoDocumento?'checked':'')+'> Usar el mismo documento para acreditar la representación legal</label>'+
+   inputFile('cedula')+'<div class="host-company-fields">'+inputFile('frente')+inputFile('reverso')+'</div></section>'+
+   '<section class="host-card"><h3>Logo</h3>'+inputFile('logo')+'</section>'+
+   '<div class="host-company-actions"><button type="submit" class="outline" value="draft">Guardar borrador</button><button type="submit" value="review">Enviar a revisión</button></div></form>';
+  const form=panel.querySelector('form');
+  const same=form.elements.mismoDocumento;
+  const sync=()=>{form.querySelector('[data-upload=poder]').hidden=same.checked;form.elements.poder.disabled=same.checked;};
+  same.onchange=sync;sync();
+  form.onsubmit=async event=>{
+   event.preventDefault();
+   const buttons=[...form.querySelectorAll('button')];
+   buttons.forEach(button=>button.disabled=true);
+   status.textContent='Guardando…';
+   try{
+    const datos=Object.fromEntries(Object.keys(companyFields).map(key=>[key,form.elements[key].value]));
+    const archivos={};
+    for(const key of Object.keys(companyFiles)){
+     const input=form.elements[key];
+     const file=input.files[0];
+     if(!file||input.disabled)continue;
+     const pdf=['registro','poder','cedula'].includes(key);
+     if(pdf&&file.size>1048576)throw new Error('Cada PDF puede pesar hasta 1 MB.');
+     if(!pdf&&file.size>25*1024*1024)throw new Error('Cada imagen puede pesar hasta 25 MB.');
+     const base64=pdf?await companyReadFile(file):(await prepareHostPhoto(file)).split(',')[1];
+     archivos[key]={nombre:pdf?file.name:file.name.replace(/\.[^.]+$/,'')+'.jpg',tipo:pdf?'application/pdf':'image/jpeg',base64};
+    }
+    if(archivos.cedula&&(archivos.frente||archivos.reverso))throw new Error('Elige un PDF de la cédula o dos fotos, frente y reverso.');
+    const enviar=event.submitter?.value==='review';
+    ({empresa:company}=await hostRequest('hosts/empresa','POST',{datos,archivos,mismoDocumento:same.checked,enviar,version:company?.version||0}));
+    editing=false;
+    render(enviar?'Empresa enviada a revisión.':'Borrador guardado.');
+   }catch(error){status.textContent=error.message;}
+   finally{buttons.forEach(button=>button.disabled=false);}
+  };
+ }
+ render();
+}
+async function adminHostCompanies(){
+ adminShell('Verificación de empresas','Verificación de empresas','Revisa los tres antecedentes antes de aprobar una empresa.','<div class="admin-card" id="adminHostCompanies"></div>');
+ const area=document.getElementById('adminHostCompanies');
+ const path='admin/empresas-anfitriones';
+ try{
+  const {empresas}=await hostRequest(path);
+  if(!area.isConnected)return;
+  area.innerHTML=empresas.map(row=>'<p><button type="button" class="outline" data-company-review="'+Number(row.host_id)+'">'+hostEscape(row.razon)+' · '+hostEscape(companyStates[row.estado])+'</button></p>').join('')||'<p>No hay empresas enviadas a revisión.</p>';
+  area.querySelectorAll('[data-company-review]').forEach(button=>button.onclick=async()=>{
+   const record=path+'/'+button.dataset.companyReview;
+   try{
+    const {empresa}=await hostRequest(record);
+    if(!area.isConnected)return;
+    area.innerHTML='<button type="button" class="outline" data-company-back>Volver a empresas</button><h2>'+hostEscape(empresa.datos.razon)+'</h2><p>'+hostEscape(companyStates[empresa.estado])+'</p><dl>'+companyValues(Object.keys(companyFields),empresa.datos,false)+'</dl>'+
+     '<h3>Documentos de acreditación</h3>'+companySavedFiles(empresa.archivos,record,empresa.datos.mismoDocumento)+
+     (empresa.estado==='revision'?'<form data-company-decision><label>Observaciones<textarea name="observacion" maxlength="1000"></textarea></label><div class="host-company-actions"><button type="submit" value="observada" class="outline">Devolver con observaciones</button><button type="submit" value="verificada">Aprobar empresa</button></div><p role="status"></p></form>':'');
+    area.querySelector('[data-company-back]').onclick=adminHostCompanies;
+    bindCompanyFiles(area);
+    const form=area.querySelector('[data-company-decision]');
+    if(form)form.onsubmit=async event=>{
+     event.preventDefault();
+     const buttons=[...form.querySelectorAll('button')];
+     buttons.forEach(control=>control.disabled=true);
+     try{await hostRequest(record,'PATCH',{estado:event.submitter.value,observacion:form.elements.observacion.value,version:empresa.version});await adminHostCompanies();}
+     catch(error){form.querySelector('[role=status]').textContent=error.message;}
+     finally{buttons.forEach(control=>control.disabled=false);}
+    };
+   }catch(error){area.textContent=error.message;}
+  });
+ }catch(error){area.textContent=error.message;}
+}
+
 function renderHostCard(row){
  const d=hostRead(row.ficha);
  const photos=(d.fotos||[]).filter(value=>/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value)).map(value=>'<img width="220" alt="" loading="lazy" src="'+hostEscape(value)+'">').join('');
- return '<div class="box"><h2>'+hostEscape(d.titulo)+'</h2><p>'+hostEscape(d.ubicacion)+' · '+money(d.precio)+'</p><p>'+hostEscape(d.descripcion)+'</p><p>'+hostEscape(d.disponibilidad)+'</p>'+photos+'</div>';
+ return '<div class="box"><h2>'+hostEscape(d.titulo)+'</h2><p>'+hostEscape(d.ubicacion)+' · '+money(d.precio)+'</p><p>'+hostEscape(d.descripcion)+'</p><p>'+hostEscape(d.disponibilidad)+'</p>'+photos+(row.empresa_verificada===true?'<p>'+companySeal+'</p>':'')+'</div>';
 }
 async function hostPublished(type){
  const target=hostView.querySelector('section');
@@ -349,7 +525,7 @@ async function hostPublished(type){
  }catch{/* Existing catalogue remains available while the host API is unavailable. */}
 }
 async function hostModeration(){
- adminShell('Revisión de fichas','Revisión de fichas','Publicaciones enviadas por anfitriones.','<div class="admin-card"><button type="button" onclick="adminPayouts()">Documentos de cobro</button></div><div class="admin-card" id="hostModeration"></div>');
+ adminShell('Revisión de fichas','Revisión de fichas','Publicaciones enviadas por anfitriones.','<div class="admin-card"><button type="button" onclick="adminPayouts()">Documentos de cobro</button> <button type="button" onclick="adminHostCompanies()">Verificación de empresas</button></div><div class="admin-card" id="hostModeration"></div>');
  const area=document.getElementById('hostModeration');
  try{
   const data=await hostRequest('admin/fichas-anfitriones');

@@ -1,5 +1,6 @@
 'use strict';
 const payoutRoutes=require('./payouts');
+const businessRoutes=require('./business');
 const crypto = require('node:crypto');
 const {promisify} = require('node:util');
 const scrypt = promisify(crypto.scrypt);
@@ -12,6 +13,7 @@ const hashPassword = async (password, salt = crypto.randomBytes(16).toString('he
 module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
   const attempts = new Map();
   const payouts=payoutRoutes(pool);
+  const business=businessRoutes(pool);
   const cookie = (value, age) => 'finde_host='+value+'; HttpOnly; Secure; SameSite=Strict; Path=/api/hosts; Max-Age='+age;
   async function sendReset(email, value) {
     const url = new URL('/#restablecer='+value, origin);
@@ -20,14 +22,17 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
   }
   return async function host(req,res,path) {
     const route = path.replace(/^\/api(?=\/)/,'');
-    if (!route.startsWith('/hosts/') && route !== '/catalogo-anfitriones' && !route.startsWith('/admin/fichas-anfitriones') && !route.startsWith('/admin/cobros-anfitriones')) return false;
+    const companyAdmin=route==='/admin/empresas-anfitriones'||route.startsWith('/admin/empresas-anfitriones/');
+    const companyHost=route==='/hosts/empresa'||route.startsWith('/hosts/empresa/');
+    if (!companyAdmin && !route.startsWith('/hosts/') && route !== '/catalogo-anfitriones' && !route.startsWith('/admin/fichas-anfitriones') && !route.startsWith('/admin/cobros-anfitriones')) return false;
     const method=req.method;
     const reply=(status,data,headers)=>{json(res,status,data,headers);return true;};
     if (method!=='GET' && req.headers.origin!==origin) return reply(403,{error:'Origen no autorizado'});
     try {
       if (method==='GET' && route==='/catalogo-anfitriones') {
-        const [rows]=await pool.execute('SELECT id, publicada AS ficha FROM finde_host_listings WHERE publicada IS NOT NULL ORDER BY id DESC LIMIT 30');
-        return reply(200,{fichas:rows});
+        const [rows]=await pool.execute('SELECT id, host_id, publicada AS ficha FROM finde_host_listings WHERE publicada IS NOT NULL ORDER BY id DESC LIMIT 30');
+        const reviewed=await business.reviewed([...new Set(rows.map(row=>row.host_id))]);
+        return reply(200,{fichas:rows.map(({id,ficha,host_id})=>({id,ficha,empresa_verificada:reviewed.has(String(host_id))}))});
       }
       const admin=route.startsWith('/admin/');
       if(admin && !authorized(req)) return reply(401,{error:'Inicia sesión en Administración'});
@@ -43,9 +48,10 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
       let body={};
       if(method==='POST'||method==='PATCH'){
         if(!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']||''))return reply(415,{error:'Se requiere JSON'});
-        try{body=await readBody(req,['/hosts/fichas','/hosts/pagos/documentos'].includes(route)?1900000:8192);if(!body||typeof body!=='object'||Array.isArray(body))throw Error();}
+        try{body=await readBody(req,['/hosts/fichas','/hosts/pagos/documentos'].includes(route)?1900000:route==='/hosts/empresa'?6500000:8192);if(!body||typeof body!=='object'||Array.isArray(body))throw Error();}
         catch{return res.destroyed ? true : reply(400,{error:'Solicitud inválida'});}
       }
+      if(companyAdmin)return await business.handle(route,method,body,reply);
       const email=typeof body.email==='string'?body.email.trim().toLowerCase():'';
       if(method==='POST' && ['/hosts/registro','/hosts/ingreso','/hosts/recuperar'].includes(route)){
         if(email.length>180||!/^\S+@[^\s@]+\.\S+$/.test(email))return reply(400,{error:'Revisa el correo electrónico'});
@@ -105,6 +111,7 @@ module.exports = function hostRoutes({pool,json,origin,authorized,readBody}) {
       if(!session)return reply(401,{error:'Inicia sesión'});
       const [[account]]=await pool.execute('SELECT a.id,a.nombre,a.email FROM finde_host_sessions s JOIN finde_host_accounts a ON a.id=s.host_id WHERE s.token_hash=? AND s.expires_at>NOW()',[digest(session)]);
       if(!account)return reply(401,{error:'Inicia sesión'});
+      if(companyHost)return await business.handle(route,method,body,reply,account);
       if(route.startsWith('/hosts/pagos'))return await payouts(route,method,body,reply,account);
       if(method==='POST'&&route==='/hosts/salir'){
         await pool.execute('DELETE FROM finde_host_sessions WHERE token_hash=?',[digest(session)]);
