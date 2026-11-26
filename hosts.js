@@ -141,6 +141,8 @@ function hostCalendarCount(count){
  return count===1?'1 reserva':count+' reservas';
 }
 function renderHostCalendar(area,bookings){
+ const connected=Array.isArray(bookings);
+ bookings ??= [];
  const today=hostCalendarToday();
  let month=new Date(today.slice(0,7)+'-01T12:00:00Z');
  let selected=today;
@@ -182,7 +184,7 @@ function renderHostCalendar(area,bookings){
    <button class="outline" type="button" data-calendar-today>Hoy</button>
   </div>
   <div class="host-calendar-viewport"><table aria-labelledby="host-calendar-month"><thead><tr>${['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(day=>'<th scope="col">'+day+'</th>').join('')}</tr></thead><tbody>${rows}</tbody></table></div>
-  ${hasBookings?'':'<p class="host-calendar-empty">No hay reservas para este mes</p>'}
+  ${hasBookings?'':`<p class="host-calendar-empty">${connected?'No hay reservas para este mes':'Las reservas aún no están conectadas al calendario.'}</p>`}
   <section class="host-calendar-detail" aria-label="Reservas del día" aria-live="polite" hidden></section>`;
   for(const button of area.querySelectorAll('[data-calendar-step]')){
    const step=Number(button.dataset.calendarStep);
@@ -222,7 +224,7 @@ function renderHostDashboard(section='resumen'){
  }else if(listingSection){
   content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
  }else if(section==='calendario'){
-  content='<div id="hostCalendar" class="host-card host-calendar"></div>'+(Array.isArray(hostPortalData.reservas)?'':'<p class="host-calendar-source">Las reservas todavía no están conectadas al calendario de anfitriones.</p>');
+  content='<div id="hostCalendar" class="host-card host-calendar"></div>';
  }else if(section==='pagos'){
   content='<div id="hostPayouts"><p>Cargando…</p></div>';
  }else if(section==='cuenta'){
@@ -233,7 +235,7 @@ function renderHostDashboard(section='resumen'){
  }
  hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
  if(section==='pagos')void loadHostPayouts();
- if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas||[]);
+ if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas);
  const newButton=document.getElementById('hostNew');
  if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
  hostView.querySelectorAll('[data-host-listing]').forEach(button=>{button.onclick=()=>{
