@@ -159,4 +159,28 @@
 .host-reservation-dialog{width:min(520px,90vw);border:1px solid #bad4ce;border-radius:14px;padding:22px;color:#133a40}
 .host-reservation-dialog::backdrop{background:#122f3880}
 .host-reservation-dialog textarea{display:block;width:100%;box-sizing:border-box;margin:8px 0}
-</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=host-reservations-1"></script></body></html>
+
+.host-stay-toolbar,.host-stay-modes,.host-stay-footer,.host-stay-footer nav{display:flex;flex-wrap:wrap;align-items:end;gap:8px}
+.host-stay-toolbar{margin:0 0 16px}
+.host-stay-toolbar label{display:grid;gap:4px;font-weight:650;flex:1 1 155px}
+.host-stay-toolbar label:first-child{flex:2 1 200px}
+.host-stay-toolbar input,.host-stay-toolbar select{box-sizing:border-box;width:100%;padding:9px;border:1px solid #b9cecc;border-radius:8px;background:white;font:inherit}
+.host-stay-modes button{background:white;color:#005c50;border:1px solid #9cbfba}
+.host-stay-modes button[aria-pressed=true],.host-stay-footer [aria-current=page]{background:#007965;color:white}
+.host-stay-table{overflow:auto;padding:0}
+.host-stay-table table{border-collapse:collapse;width:100%;min-width:680px;text-align:left}
+.host-stay-table th,.host-stay-table td{padding:10px;border-bottom:1px solid #dceae7}
+.host-stay-table thead{background:#eaf6f2}
+.host-stay-identity{display:flex;align-items:center;gap:12px}
+.host-stay-photo{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px}
+.host-stay-identity .host-stay-photo{width:86px;flex:none}
+.host-stay-placeholder{display:grid;place-items:center;background:#e4f2ef;color:#587772}
+.host-stay-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.host-stay-grid .host-stay-card{display:flex;flex-direction:column;margin:0;padding:12px;overflow-wrap:anywhere}
+.host-stay-card h2{font-size:1.15rem;margin:10px 0 5px}
+.host-stay-card p,.host-stay-note{margin:4px 0 8px}
+.host-stay-card button{margin-top:auto}
+.host-stay-footer{justify-content:space-between;margin-top:14px}
+@media(max-width:1100px){.host-stay-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.host-stay-grid{grid-template-columns:1fr}}
+</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=host-accommodations-1"></script></body></html>
