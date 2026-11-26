@@ -358,10 +358,9 @@ function companyValues(keys,data,edit){
    '<div class="host-company-row"><dt>'+label+'</dt><dd>'+hostEscape(key==='rut'&&value?'••••'+value.slice(-5):value||'—')+'</dd></div>';
  }).join('');
 }
-function companySavedFiles(files,path,same){
- return Object.entries(companyFiles).filter(([key])=>files[key]||(same&&key==='poder'&&files.registro)).map(([key,[label]])=>{
-  const actual=same&&key==='poder'?'registro':key;
-  return '<div class="host-company-file-row"><span><strong>'+label+'</strong><br>'+hostEscape(files[actual])+'</span><a class="host-company-file" href="'+path+'/archivo/'+actual+'" data-company-file>Ver archivo</a></div>';
+function companySavedFiles(files,path){
+ return Object.entries(companyFiles).filter(([key])=>files[key]).map(([key,[label]])=>{
+  return '<div class="host-company-file-row"><span><strong>'+label+'</strong><br>'+hostEscape(files[key])+'</span><a class="host-company-file" href="'+path+'/archivo/'+key+'" data-company-file>Ver archivo</a></div>';
  }).join('');
 }
 function bindCompanyFiles(area){
@@ -421,9 +420,10 @@ async function loadHostCompany(){
   if(company&&!editing){
    const date=company.verificada?new Date(company.verificada).toLocaleDateString('es-CL'):'';
    panel.innerHTML='<div class="host-company-heading"><p>'+ (state==='verificada'?companySeal+' <span> · '+hostEscape(date)+'</span>':hostEscape(companyStates[state]))+'</p><button type="button" class="outline" data-company-edit>Editar datos de la empresa</button></div>'+
-    (company.observacion?'<p class="host-card">'+hostEscape(company.observacion)+'</p>':'')+
+    (files.poder?'':'<p class="host-card">Falta adjuntar el documento de representación legal por separado.</p>')+
+   (company.observacion?'<p class="host-card">'+hostEscape(company.observacion)+'</p>':'')+
     '<div class="host-company-grid">'+groups.map(([title,keys])=>'<section class="host-card"><h2>'+title+'</h2><dl>'+companyValues(keys,data,false)+'</dl></section>').join('')+'</div>'+
-    '<section class="host-card"><h2>Documentos de acreditación</h2>'+(companySavedFiles(files,'hosts/empresa',data.mismoDocumento)||'<p>Aún no hay archivos adjuntos.</p>')+'</section>';
+    '<section class="host-card"><h2>Documentos de acreditación</h2>'+(companySavedFiles(files,'hosts/empresa')||'<p>Aún no hay archivos adjuntos.</p>')+'</section>';
    panel.querySelector('[data-company-edit]').onclick=()=>{editing=true;render();};
    bindCompanyFiles(panel);
    return;
@@ -440,14 +440,10 @@ async function loadHostCompany(){
    (state==='verificada'?'<p>Al guardar cambios, el sello se ocultará hasta que Findito revise nuevamente la empresa.</p>':'')+
    '<div class="host-company-grid">'+groups.map(([title,keys])=>'<section class="host-card"><h3>'+title+'</h3><div class="host-company-fields">'+companyValues(keys,data,true)+'</div></section>').join('')+'</div>'+
    '<section class="host-card"><h3>Documentos de acreditación</h3><div class="host-company-fields">'+inputFile('registro')+inputFile('poder')+'</div>'+
-   '<label class="host-company-check"><input name="mismoDocumento" type="checkbox" '+(data.mismoDocumento?'checked':'')+'> Usar el mismo documento para acreditar la representación legal</label>'+
    inputFile('cedula')+'<div class="host-company-fields">'+inputFile('frente')+inputFile('reverso')+'</div></section>'+
    '<section class="host-card"><h3>Logo</h3>'+inputFile('logo')+'</section>'+
    '<div class="host-company-actions"><button type="submit" class="outline" value="draft">Guardar borrador</button><button type="submit" value="review">Enviar a revisión</button></div></form>';
   const form=panel.querySelector('form');
-  const same=form.elements.mismoDocumento;
-  const sync=()=>{form.querySelector('[data-upload=poder]').hidden=same.checked;form.elements.poder.disabled=same.checked;};
-  same.onchange=sync;sync();
   form.onsubmit=async event=>{
    event.preventDefault();
    const buttons=[...form.querySelectorAll('button')];
@@ -468,7 +464,7 @@ async function loadHostCompany(){
     }
     if(archivos.cedula&&(archivos.frente||archivos.reverso))throw new Error('Elige un PDF de la cédula o dos fotos, frente y reverso.');
     const enviar=event.submitter?.value==='review';
-    ({empresa:company}=await hostRequest('hosts/empresa','POST',{datos,archivos,mismoDocumento:same.checked,enviar,version:company?.version||0}));
+    ({empresa:company}=await hostRequest('hosts/empresa','POST',{datos,archivos,enviar,version:company?.version||0}));
     editing=false;
     render(enviar?'Empresa enviada a revisión.':'Borrador guardado.');
    }catch(error){status.textContent=error.message;}
@@ -491,7 +487,7 @@ async function adminHostCompanies(){
     const {empresa}=await hostRequest(record);
     if(!area.isConnected)return;
     area.innerHTML='<button type="button" class="outline" data-company-back>Volver a empresas</button><h2>'+hostEscape(empresa.datos.razon)+'</h2><p>'+hostEscape(companyStates[empresa.estado])+'</p><dl>'+companyValues(Object.keys(companyFields),empresa.datos,false)+'</dl>'+
-     '<h3>Documentos de acreditación</h3>'+companySavedFiles(empresa.archivos,record,empresa.datos.mismoDocumento)+
+     '<h3>Documentos de acreditación</h3>'+companySavedFiles(empresa.archivos,record)+
      (empresa.estado==='revision'?'<form data-company-decision><label>Observaciones<textarea name="observacion" maxlength="1000"></textarea></label><div class="host-company-actions"><button type="submit" value="observada" class="outline">Devolver con observaciones</button><button type="submit" value="verificada">Aprobar empresa</button></div><p role="status"></p></form>':'');
     area.querySelector('[data-company-back]').onclick=adminHostCompanies;
     bindCompanyFiles(area);

@@ -49,8 +49,8 @@ module.exports = function businessRoutes(pool) {
     if(admin && method==='PATCH' && match && !match[2]){
       const note=typeof body.observacion==='string'?body.observacion.trim():'';
       if(!['verificada','observada'].includes(body.estado)||!Number.isSafeInteger(body.version)||note.length>1000||(body.estado==='observada'&&!note))return reply(400,{error:'Revisa el estado y las observaciones'});
-      const [result]=await pool.execute("UPDATE finde_host_business SET estado=?, observacion=?, verificada=IF(?='verificada',NOW(),NULL), version=version+1 WHERE host_id=? AND estado='revision' AND version=?",[body.estado,body.estado==='observada'?note:'',body.estado,id,body.version]);
-      return result.affectedRows?reply(200,{ok:true}):reply(409,{error:'La empresa cambió. Abre nuevamente el registro antes de revisar.'});
+      const [result]=await pool.execute("UPDATE finde_host_business SET estado=?, observacion=?, verificada=IF(?='verificada',NOW(),NULL), version=version+1 WHERE host_id=? AND estado='revision' AND version=? AND (?<>'verificada' OR JSON_CONTAINS_PATH(archivos,'one','$.poder'))",[body.estado,body.estado==='observada'?note:'',body.estado,id,body.version,body.estado]);
+      return result.affectedRows?reply(200,{ok:true}):reply(409,{error:'Confirma que la solicitud sigue en revisión y tiene el documento de representación legal adjunto por separado.'});
     }
     const [rows]=await pool.execute('SELECT * FROM finde_host_business WHERE host_id=?',[id]);
     const row=rows[0];
@@ -80,8 +80,7 @@ module.exports = function businessRoutes(pool) {
       if(key==='cedula'){delete files.frente;delete files.reverso;}
       if(key==='frente'||key==='reverso')delete files.cedula;
     }
-    datos.mismoDocumento=body.mismoDocumento===true;
-    if(body.enviar===true&&(!files.registro||(!datos.mismoDocumento&&!files.poder)||(!files.cedula&&!(files.frente&&files.reverso))))return reply(400,{error:'Adjunta los tres documentos de acreditación antes de enviar.'});
+    if(body.enviar===true&&(!files.registro||!files.poder||(!files.cedula&&!(files.frente&&files.reverso))))return reply(400,{error:'Adjunta los tres documentos de acreditación antes de enviar.'});
     const estado=body.enviar===true?'revision':'borrador';
     const values=[JSON.stringify(datos),JSON.stringify(files),estado];
     if(!row){
