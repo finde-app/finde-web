@@ -14,14 +14,40 @@ function hostScreen(title, contents){
 }
 function hostMessage(message){const el=document.getElementById('hostMessage');if(el)el.textContent=message;}
 
-function hostWelcome(title, content, heading, steps){
- hostView.innerHTML=`<section class="host-welcome"><div class="host-welcome-body"><h1>${title}</h1>${content}<p id="hostMessage" role="status"></p></div><aside class="host-welcome-photo"><div><h2>${heading}</h2><ol>${steps.map(step=>'<li>'+step+'</li>').join('')}</ol></div></aside></section>`;
+function hostWelcome(title, content, heading, steps, action, onAction){
+ hostView.innerHTML = `<section class="host-onboarding" aria-label="${title}">
+  <div class="host-welcome-bar">
+   <button type="button" class="host-welcome-brand" aria-label="Findito Chile, inicio">Findito <span>Chile</span></button>
+   <button type="button" class="host-welcome-action">${action}</button>
+  </div>
+  <div class="host-welcome">
+   <div class="host-welcome-body"><h1>${title}</h1>${content}<p id="hostMessage" role="status"></p></div>
+   <aside class="host-welcome-photo"><div><h2>${heading}</h2><ol>${steps.map(step => `<li>${step}</li>`).join('')}</ol></div></aside>
+  </div>
+ </section>`;
+ hostView.querySelector('.host-welcome-brand').onclick = home;
+ hostView.querySelector('.host-welcome-action').onclick = onAction;
 }
+const hostEyeIcon = '<svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+const hostListingIcons = {
+ Alojamiento: '<path d="M5 12 16 3l11 9M8 10v16h16V10M13 26v-8h6v8M4 26h24M9 14h14"/>',
+ Experiencia: '<path d="m2 25 8-9 5 5 7-10 8 9M2 29h28M21 11l2 5 2-2"/><circle cx="9" cy="7" r="3"/>'
+};
 function hostFirstListing(){
- hostWelcome('Crea tu primera ficha',`<p>¿Qué quieres ofrecer en Findito?</p>
- <article><h2>Alojamiento</h2><p>Publica una cabaña, casa, departamento u otro hospedaje.</p><button type="button" data-host-first="Alojamiento">Agregar alojamiento</button></article>
- <article><h2>Experiencia</h2><p>Ofrece un tour, actividad o experiencia local.</p><button type="button" data-host-first="Experiencia">Agregar experiencia</button></article>
- <button type="button" class="outline" onclick="renderHostDashboard()">Mi panel</button>`,'Cómo publicar',['Completa tu ficha','Envíala a revisión','Findito revisa y publica']);
+ const descriptions = {
+  Alojamiento: 'Publica una cabaña, casa, departamento u otro hospedaje.',
+  Experiencia: 'Ofrece un tour, actividad o experiencia local.'
+ };
+ const cards = Object.entries(descriptions).map(([type, description]) => `<article>
+  <div class="host-first-option">
+   <svg aria-hidden="true" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${hostListingIcons[type]}</svg>
+   <div><h2>${type}</h2><p>${description}</p></div>
+  </div>
+  <button type="button" data-host-first="${type}">Agregar ${type.toLowerCase()}</button>
+ </article>`).join('');
+ hostWelcome('Crea tu primera ficha', `<p class="host-first-prompt">¿Qué quieres ofrecer en Findito?</p>${cards}`,
+  'Cómo publicar', ['Completa tu ficha', 'Envíala a revisión', 'Findito revisa y publica'],
+  'Mi panel', () => renderHostDashboard());
  hostView.querySelectorAll('[data-host-first]').forEach(button=>{button.onclick=()=>hostEditor(undefined,button.dataset.hostFirst);});
 }
 
@@ -31,8 +57,33 @@ function hostAuth(mode='ingreso', resetToken=''){
  const email=mode==='restablecer'?'':'<label>Correo electrónico<input name="email" type="email" required autocomplete="email" maxlength="180"></label>';
  const password=mode==='recuperar'?'':'<label>Contraseña<input name="password" type="password" required minlength="12" autocomplete="'+(mode==='ingreso'?'current-password':'new-password')+'"></label>';
  if(mode==='registro'){
-  hostWelcome('Crea tu cuenta de anfitrión','<p>Publica un alojamiento o una experiencia en Findito.</p><form id="hostAuth">'+name.replace('>Nombre<','>Nombre completo<')+email+password+'<small>Mínimo 12 caracteres</small><label>Confirmar contraseña<input name="confirmPassword" type="password" required minlength="12" autocomplete="new-password"></label><button>Crear cuenta</button></form><button class="outline" type="button" id="hostReturnLogin">Ya tengo cuenta</button>','Después de registrarte',['Crea tu ficha','Envíala a revisión','Findito revisa y publica']);
-  document.getElementById('hostReturnLogin').onclick=()=>hostAuth();
+  const passwordFields = [
+   { name: 'password', label: 'Contraseña', help: 'Mínimo 12 caracteres' },
+   { name: 'confirmPassword', label: 'Confirmar contraseña', help: 'Vuelve a escribir tu contraseña' }
+  ].map(field => `<div class="host-password-field">
+   <label for="host-${field.name}">${field.label}</label>
+   <div class="host-password-input">
+    <input id="host-${field.name}" name="${field.name}" type="password" required minlength="12" autocomplete="new-password" aria-describedby="host-help-${field.name}">
+    <button type="button" class="host-password-toggle" aria-label="Mostrar ${field.label.toLowerCase()}" aria-controls="host-${field.name}" aria-pressed="false">${hostEyeIcon}</button>
+   </div>
+   <small id="host-help-${field.name}">${field.help}</small>
+  </div>`).join('');
+  hostWelcome('Crea tu cuenta de anfitrión', `<p>Publica un alojamiento o una experiencia en Findito.</p>
+   <form id="hostAuth">${name.replace('>Nombre<', '>Nombre completo<')}${email}${passwordFields}
+    <button type="submit">Crear cuenta</button>
+   </form>
+   <p class="host-welcome-login">¿Ya tienes cuenta? <button type="button" id="hostReturnLogin">Inicia sesión</button></p>`,
+   'Después de registrarte', ['Crea tu ficha', 'Envíala a revisión', 'Findito revisa y publica'],
+   'Iniciar sesión', () => hostAuth());
+  document.getElementById('hostReturnLogin').onclick = () => hostAuth();
+  hostView.querySelectorAll('.host-password-toggle').forEach(toggle => {
+   const field = document.getElementById(toggle.getAttribute('aria-controls'));
+   toggle.onclick = () => {
+    const visible = field.type === 'password';
+    field.type = visible ? 'text' : 'password';
+    toggle.setAttribute('aria-pressed', String(visible));
+   };
+  });
  }else{
  hostScreen(names[mode],'<form id="hostAuth">'+name+email+password+'<button>'+names[mode]+'</button></form><button class="outline" onclick="hostAuth(\'ingreso\')">Iniciar sesión</button> <button class="outline" onclick="hostAuth(\'registro\')">Crear cuenta</button> <button class="outline" onclick="hostAuth(\'recuperar\')">Olvidé mi contraseña</button>');
  }

@@ -34,15 +34,43 @@
 @media(max-width:1150px){.payout-layout{grid-template-columns:1fr}.payout-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.payout-filters{grid-template-columns:1fr}}
 
-.host-welcome{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;background:#e4f3ef;padding:clamp(16px,4vw,52px);color:#14363c}
-.host-welcome-body,.host-welcome-photo{border-radius:22px;min-width:0}
-.host-welcome-body{background:#fff;padding:clamp(20px,3.5vw,44px)}
-.host-welcome-body h1{font-size:clamp(29px,4vw,50px);line-height:1.06;margin:0 0 14px;letter-spacing:-.035em}
-.host-welcome-body label{display:block;margin:12px 0;font-weight:650}.host-welcome-body input{display:block;width:100%;margin-top:5px;box-sizing:border-box}
-.host-welcome-body form button,.host-welcome-body article button{display:block;width:100%;margin:12px 0}
-.host-welcome-body article{border:1px solid #c8dcda;border-radius:14px;padding:14px 18px;margin:16px 0}
-.host-welcome-body h2,.host-welcome-photo h2{margin:0 0 8px}
-.host-welcome-photo{display:flex;align-items:flex-end;padding:22px;background:#bfdad2 url('https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=82') center / cover}
-.host-welcome-photo>div{width:100%;background:#fff;border-radius:14px;padding:18px 22px}.host-welcome-photo ol{margin:0;padding-left:1.35em}.host-welcome-photo li{padding:6px 0}
-@media(max-width:750px){.host-welcome{grid-template-columns:1fr;gap:15px}.host-welcome-photo{min-height:240px}}
-</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=primera-ficha-1"></script></body></html>
+.host-onboarding{max-width:1120px;margin:clamp(12px,3vw,36px) auto;border-radius:24px;overflow:hidden;color:#092c37;background:#dcf0ed}
+.host-onboarding *{box-sizing:border-box}
+.host-welcome-bar{display:flex;justify-content:space-between;align-items:center;background:#f8fafb;padding:8px clamp(16px,3vw,30px)}
+.host-welcome-bar button,.host-welcome-login button,.host-welcome .host-password-toggle{background:transparent;color:inherit;border:0;box-shadow:none;padding:5px;min-height:0}
+.host-welcome-brand{font-size:21px;font-weight:800}
+.host-welcome-brand::before{content:"";display:inline-block;width:27px;height:15px;margin-right:7px;background:#008c71;clip-path:polygon(0 100%,44% 8%,62% 43%,51% 63%,43% 49%,20% 100%,32% 100%,69% 28%,100% 100%)}
+.host-welcome-brand span{font-size:12px;font-weight:500;border-left:1px solid;padding-left:8px;margin-left:4px}
+.host-welcome-action{font-weight:700}
+.host-welcome{display:grid;grid-template-columns:minmax(0, .9fr) minmax(0, 1fr);gap:clamp(14px,3vw,34px)}
+.host-welcome-body{background:#fff;margin:12px 0 14px clamp(12px,3vw,36px);border-radius:18px;padding:clamp(16px,3vw,38px);min-width:0}
+.host-welcome h1{font-size:clamp(27px,4vw,43px);line-height:1.04;margin:0 0 8px;letter-spacing:-.04em}
+.host-welcome h2{font-size:clamp(17px,2vw,24px);line-height:1.1;margin:0 0 6px;letter-spacing:-.025em}
+.host-welcome p{margin:0 0 12px}
+.host-welcome label{display:block;margin:10px 0 4px;font-size:.9rem;font-weight:700}
+.host-welcome input{display:block;width:100%;margin:4px 0 0;border:1px solid #b9c8d5;border-radius:6px;padding:8px 10px;background:#fcfcfd;color:inherit}
+.host-password-input{position:relative}
+.host-password-input input{padding-right:40px}
+.host-welcome .host-password-toggle{position:absolute;right:3px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:34px;height:30px}
+.host-password-toggle svg{width:19px;height:19px}
+.host-password-toggle[aria-pressed=true]{color:#00765e}
+.host-welcome small{display:block;margin-top:3px;color:#47576a}
+.host-welcome button[type=submit],.host-welcome [data-host-first]{display:block;width:100%;margin-top:12px;background:#00886e;color:#fff;border-radius:9px;font-weight:750}
+.host-welcome button[type=submit]:hover,.host-welcome [data-host-first]:hover{background:#006f59}
+.host-welcome .host-welcome-login{text-align:center;font-size:.88rem;margin:7px 0 0}
+.host-welcome-login button{color:#006f59;font-weight:750}
+.host-welcome #hostMessage{color:#a1262c;margin:8px 0 0}
+.host-welcome #hostMessage:empty{margin:0}
+.host-first-prompt{font-weight:650}
+.host-welcome article{border:1px solid #c6d2e0;border-radius:14px;padding:12px;margin-top:12px;background:#fcfcfd}
+.host-first-option{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
+.host-first-option svg{width:100%;max-height:56px;border-right:1px solid #c6d2e0;padding-right:10px}
+.host-first-option p{margin:0;font-size:.9rem}
+.host-welcome-photo{display:flex;align-items:flex-end;padding:clamp(14px,4vw,42px);border-radius:18px 0 0 18px;background:#bfdad2 url('https://images.unsplash.com/photo-1449158743715-0a90ebb6d2d8?auto=format&fit=crop&w=1200&q=82') center / cover}
+.host-welcome-photo>div{width:100%;background:#fff;border-radius:15px;padding:clamp(14px,2.5vw,25px)}
+.host-welcome-photo ol{margin:0;padding:0;list-style:none;counter-reset:host-step}
+.host-welcome-photo li{counter-increment:host-step;display:flex;align-items:center;gap:12px;padding:7px 0;font-weight:600}
+.host-welcome-photo li+li{border-top:1px solid #e0e6eb}
+.host-welcome-photo li::before{content:counter(host-step);display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:50%;background:#00836a;color:white;font-size:.78rem}
+@media(max-width:650px){.host-onboarding{margin:12px}.host-welcome{grid-template-columns:1fr}.host-welcome-body{margin:12px 12px 0}.host-welcome-photo{min-height:260px;border-radius:0}}
+</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=onboarding-mockups-1"></script></body></html>
