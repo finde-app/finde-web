@@ -73,4 +73,29 @@
 .host-welcome-photo li+li{border-top:1px solid #e0e6eb}
 .host-welcome-photo li::before{content:counter(host-step);display:grid;place-items:center;flex:0 0 22px;height:22px;border-radius:50%;background:#00836a;color:white;font-size:.78rem}
 @media(max-width:650px){.host-onboarding{margin:12px}.host-welcome{grid-template-columns:1fr}.host-welcome-body{margin:12px 12px 0}.host-welcome-photo{min-height:260px;border-radius:0}}
-</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=onboarding-mockups-1"></script></body></html>
+
+.host-payout-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.host-payout-grid .host-payout-card,.host-payout-history{margin:0;padding:clamp(16px,2.5vw,28px)}
+.host-payout-card{display:flex;flex-direction:column;min-width:0}
+.host-payout-card h2,.host-payout-history h2{margin:0 0 10px;color:#102f36}
+.host-payout-card>p{margin:0 0 12px}
+.host-bank-state{align-self:flex-start;padding:5px 10px;border-radius:8px;background:#ffebbd;color:#6f3b01;font-weight:700}
+.host-bank-state[data-registered=true]{background:#dcf6eb;color:#005844}
+.host-payout-card form{display:flex;flex-direction:column;flex:1;gap:14px;margin-top:8px}
+.host-payout-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.host-payout-full{grid-column:1/-1}
+.host-payout-fields label{display:block;font-size:.93rem;font-weight:650}
+.host-payout-fields input,.host-payout-fields select{display:block;width:100%;box-sizing:border-box;margin-top:6px;border:1px solid #a7b8bd;background:#fff;border-radius:8px;padding:10px;color:#102f36;font:inherit;font-weight:400;min-height:42px}
+.host-payout-upload{position:relative;display:grid;justify-items:center;place-content:center;gap:4px;min-height:110px;padding:12px;border:1px dashed #7a959a;border-radius:10px;background:#f8fbfa;cursor:pointer;text-align:center;overflow-wrap:anywhere}
+.host-payout-upload input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.host-payout-upload:focus-within{outline:2px solid #00775d;outline-offset:2px}
+.host-payout-upload-icon{font-size:24px;color:#00775d;line-height:1}
+.host-payout-card form>button{width:100%;margin-top:auto;background:#00775d;color:white;font-weight:750}
+.host-payout-card form>button:disabled{opacity:.65}
+.host-payout-card [role=status]{margin:0;color:#9c3131}
+.host-payout-card [role=status]:empty{display:none}
+.host-payout-history{margin-top:20px}
+.host-payout-empty{text-align:center;color:#496169;padding:16px 0;margin:0}
+@media(max-width:1000px){.host-payout-grid{grid-template-columns:1fr}}
+@media(max-width:420px){.host-payout-fields{grid-template-columns:1fr}}
+</style></head><body><header><div class="brand" onclick="home()">⌂ Finde</div><nav><button onclick="home()">Inicio</button><button onclick="showAll();hostPublished('Alojamiento')">Alojamientos</button><button onclick="experiencesHome();hostPublished('Experiencia')">Experiencias</button><button onclick="openHostPortal()">Publica con Finde</button></nav><div class="header-actions"><button class="outline" onclick="openHostPortal()">Anfitriones</button><button class="admin-access" onclick="adminLogin()">Administración</button></div></header><main id="app"></main><footer><b>Finde</b><span>Alojamientos y experiencias para descubrir Chile</span></footer><script src="app.js?v=admin-cobros-2"></script><script src="provider-interest.js?v=10c49f3"></script><script src="hosts.js?v=host-payments-1"></script></body></html>

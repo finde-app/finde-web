@@ -142,7 +142,7 @@ function renderHostDashboard(section='resumen'){
  }else if(listingSection){
   content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
  }else if(section==='pagos'){
-  content='<div id="hostPayouts" class="host-card"><p>Cargando…</p></div>';
+  content='<div id="hostPayouts"><p>Cargando…</p></div>';
  }else if(section==='cuenta'){
   content='<div class="host-card"><dl><dt>Nombre</dt><dd>'+hostEscape(cuenta.nombre)+'</dd><dt>Correo electrónico</dt><dd>'+hostEscape(cuenta.email)+'</dd></dl><button class="outline" type="button" onclick="hostAuth(\'recuperar\')">Recuperar contraseña</button></div>';
  }else{
@@ -240,7 +240,7 @@ function payoutDate(value){
  return /^\d{4}-\d{2}-\d{2}$/.test(value||'')?value.split('-').reverse().join('/'):'—';
 }
 function payoutRows(items){
- return items.map(d=>'<article class="host-card"><h3>'+hostEscape(d.tipo)+' · Folio '+hostEscape(d.folio)+'</h3><p>'+hostEscape(d.referencia)+' · '+money(d.monto)+' · '+hostEscape(payoutStates[d.estado])+'</p>'+(d.fecha_pago?'<p>Transferencia: '+payoutDate(d.fecha_pago)+'</p>':'')+(d.nota?'<p>'+hostEscape(d.nota)+'</p>':'')+'</article>').join('')||'<p>Todavía no hay documentos de cobro.</p>';
+ return items.map(d=>'<article class="host-card"><h3>'+hostEscape(d.tipo)+' · Folio '+hostEscape(d.folio)+'</h3><p>'+hostEscape(d.referencia)+' · '+money(d.monto)+' · '+hostEscape(payoutStates[d.estado])+'</p>'+(d.fecha_pago?'<p>Transferencia: '+payoutDate(d.fecha_pago)+'</p>':'')+(d.nota?'<p>'+hostEscape(d.nota)+'</p>':'')+'</article>').join('')||'<p class="host-payout-empty">Aún no hay documentos de cobro.</p>';
 }
 async function loadHostPayouts(){
  const area=document.getElementById('hostPayouts');
@@ -248,9 +248,50 @@ async function loadHostPayouts(){
   const data=await hostRequest('hosts/pagos');
   if(!area.isConnected)return;
   const bank=data.cuenta;
-  area.innerHTML='<h2>Datos bancarios</h2>'+(bank?'<p>'+hostEscape(bank.titular)+' · '+hostEscape(bank.banco)+' · '+hostEscape(bank.numero)+'</p>':'<p>Aún no has registrado una cuenta.</p>')+
-   '<form data-payout-host="banco">'+payoutLabel('titular','Titular','maxlength="120"')+payoutLabel('rut','RUT del titular, sin puntos','maxlength="12" placeholder="12345678-5"')+payoutLabel('banco','Banco','maxlength="100"')+payoutLabel('tipo','Tipo de cuenta','maxlength="45"')+payoutLabel('numero','Número de cuenta','inputmode="numeric" maxlength="30"')+'<button>Guardar datos bancarios</button><p role="status"></p></form>'+
-   '<h2>Documentos de cobro</h2><p>Receptor: Certera SpA.</p><form data-payout-host="documentos"><label>Tipo de documento<select name="tipo"><option>Boleta</option><option>Factura</option><option>Otro documento</option></select></label>'+payoutLabel('folio','Folio','inputmode="numeric" maxlength="20"')+payoutLabel('monto','Monto en pesos chilenos','type="number" min="1" max="100000000"')+payoutLabel('referencia','Reserva o liquidación asociada','maxlength="100"')+'<label>Documento PDF, hasta 1 MB<input name="archivo" type="file" accept="application/pdf,.pdf" required></label><button>Enviar documento a revisión</button><p role="status"></p></form>'+payoutRows(data.documentos);
+  area.innerHTML=`<div class="host-payout-grid">
+   <section class="host-card host-payout-card" aria-labelledby="host-bank-title">
+    <h2 id="host-bank-title">Datos bancarios</h2>
+    <p class="host-bank-state" data-registered="${Boolean(bank)}">${bank?'Cuenta registrada':'Cuenta pendiente'}</p>
+    ${bank?'<p>'+hostEscape(bank.titular)+' · '+hostEscape(bank.banco)+' · '+hostEscape(bank.numero)+'</p>':''}
+    <form data-payout-host="banco">
+     <div class="host-payout-fields">
+      <div class="host-payout-full">${payoutLabel('titular','Titular','maxlength="120"')}</div>
+      ${payoutLabel('rut','RUT del titular','maxlength="12" placeholder="12345678-5"')}
+      ${payoutLabel('banco','Banco','maxlength="100"')}
+      ${payoutLabel('tipo','Tipo de cuenta','maxlength="45"')}
+      ${payoutLabel('numero','Número de cuenta','inputmode="numeric" maxlength="30"')}
+     </div>
+     <button type="submit">Guardar datos bancarios</button>
+     <p role="status"></p>
+    </form>
+   </section>
+   <section class="host-card host-payout-card" aria-labelledby="host-doc-title">
+    <h2 id="host-doc-title">Documentos de cobro</h2>
+    <p>Receptor: Certera SpA.</p>
+    <form data-payout-host="documentos">
+     <div class="host-payout-fields">
+      <label>Tipo de documento<select name="tipo">${payoutTypes.map(type=>'<option>'+type+'</option>').join('')}</select></label>
+      ${payoutLabel('folio','Folio','inputmode="numeric" maxlength="20"')}
+      ${payoutLabel('monto','Monto en CLP','type="number" min="1" max="100000000"')}
+      ${payoutLabel('referencia','Reserva o liquidación','maxlength="100"')}
+     </div>
+     <label class="host-payout-upload">
+      <input name="archivo" type="file" accept="application/pdf,.pdf" required>
+      <span aria-hidden="true" class="host-payout-upload-icon">↑</span>
+      <strong>Selecciona un PDF</strong><span>Máximo 1 MB</span>
+     </label>
+     <button type="submit">Enviar a revisión</button>
+     <p role="status"></p>
+    </form>
+   </section>
+  </div>
+  <section class="host-card host-payout-history" aria-labelledby="host-history-title">
+   <h2 id="host-history-title">Historial de documentos</h2>
+   ${payoutRows(data.documentos)}
+  </section>`;
+  const file=area.querySelector('input[type=file]');
+  const fileLabel=area.querySelector('.host-payout-upload strong');
+  file.onchange=()=>{fileLabel.textContent=file.files[0]?.name||'Selecciona un PDF';};
   area.querySelectorAll('[data-payout-host]').forEach(form=>{form.onsubmit=async event=>{
    event.preventDefault();
    const button=event.submitter;
