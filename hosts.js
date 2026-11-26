@@ -172,21 +172,80 @@ async function openHostPortal(section='resumen'){
  }catch(error){if(!loading.isConnected)return;hostAuth();if(error.status!==401)hostMessage(error.message);}
 }
 
+let hostHeicDecoder;
+function loadHostHeicDecoder(){
+ if(!hostHeicDecoder){
+  hostHeicDecoder=new Promise((resolve,reject)=>{
+   const script=document.createElement('script');
+   script.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+   script.integrity='sha384-OTofQ0MEeiSgh62havBcemCIK0gqj809wX6UA0uPISNMRnR6NZyCdGzX3SbLrgwL';
+   script.crossOrigin='anonymous';
+   script.onload=()=>typeof window.heic2any==='function'?resolve(window.heic2any):reject(new Error());
+   script.onerror=()=>{script.remove();reject(new Error());};
+   document.head.append(script);
+  }).catch(error=>{hostHeicDecoder=undefined;throw error;});
+ }
+ return hostHeicDecoder;
+}
+async function decodeHostPhoto(blob){
+ const url=URL.createObjectURL(blob);
+ try{
+  const image=new Image();
+  image.src=url;
+  await image.decode();
+  return image;
+ }finally{URL.revokeObjectURL(url);}
+}
+async function prepareHostPhoto(file){
+ let image;
+ try{image=await decodeHostPhoto(file);}
+ catch{
+  if(!/\.(heic|heif)$/i.test(file.name)&&!/^image\/(heic|heif)(-sequence)?$/i.test(file.type))throw new Error('No se pudo abrir la foto: '+file.name);
+  try{
+   const convert=await loadHostHeicDecoder();
+   const converted=await convert({blob:file,toType:'image/jpeg',quality:.85});
+   image=await decodeHostPhoto(Array.isArray(converted)?converted[0]:converted);
+  }catch{throw new Error('No se pudo convertir '+file.name+'. Intenta exportarla como JPG desde Fotos.');}
+ }
+ const canvas=document.createElement('canvas');
+ const context=canvas.getContext('2d',{alpha:false});
+ let scale=Math.min(1,1600/Math.max(image.naturalWidth,image.naturalHeight));
+ for(let attempt=0;attempt<5;attempt++){
+  canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+  canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+  context.fillStyle='#fff';
+  context.fillRect(0,0,canvas.width,canvas.height);
+  context.drawImage(image,0,0,canvas.width,canvas.height);
+  for(const quality of [.86,.72,.58]){
+   const jpeg=canvas.toDataURL('image/jpeg',quality);
+   if(jpeg.startsWith('data:image/jpeg;base64,')&&jpeg.length<=400023)return jpeg;
+  }
+  scale*=.72;
+ }
+ throw new Error('No se pudo comprimir la foto: '+file.name);
+}
 function hostEditor(row,type='Alojamiento'){
  const data=row?hostRead(row.ficha):{tipo:type};
  const input=(name,label,max)=>'<label>'+label+'<input name="'+name+'" required maxlength="'+max+'" value="'+hostEscape(data[name])+'"></label>';
- hostScreen('Ficha de alojamiento o experiencia','<form id="hostEditor"><label>Tipo<select name="tipo"><option>Alojamiento</option><option'+(data.tipo==='Experiencia'?' selected':'')+'>Experiencia</option></select></label>'+input('titulo','Nombre',160)+input('ubicacion','Ubicación',160)+input('precio','Precio en pesos chilenos',9)+'<label>Descripción<textarea name="descripcion" required maxlength="4000">'+hostEscape(data.descripcion)+'</textarea></label><label>Disponibilidad<textarea name="disponibilidad" required maxlength="1000">'+hostEscape(data.disponibilidad)+'</textarea></label><label>Fotos JPG (hasta 4, máximo 300 KB cada una)<input id="hostPhotos" type="file" accept="image/jpeg" multiple></label><p>Fotos guardadas: '+(data.fotos?.length||0)+'. Si seleccionas nuevas, se reemplazan.</p><button value="draft">Guardar borrador</button> <button value="submit">Enviar a revisión</button></form><button class="outline" onclick="renderHostDashboard(hostCurrentSection)">Volver a mis fichas</button>');
+ hostScreen('Ficha de alojamiento o experiencia','<form id="hostEditor"><label>Tipo<select name="tipo"><option>Alojamiento</option><option'+(data.tipo==='Experiencia'?' selected':'')+'>Experiencia</option></select></label>'+input('titulo','Nombre',160)+input('ubicacion','Ubicación',160)+input('precio','Precio en pesos chilenos',9)+'<label>Descripción<textarea name="descripcion" required maxlength="4000">'+hostEscape(data.descripcion)+'</textarea></label><label>Disponibilidad<textarea name="disponibilidad" required maxlength="1000">'+hostEscape(data.disponibilidad)+'</textarea></label><label>Fotos (hasta 4; JPG, PNG, WebP, GIF, AVIF o HEIC/HEIF)<input id="hostPhotos" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.gif,.avif,.heic,.heif" multiple></label><p>Findito ajusta el tamaño de las fotos automáticamente.</p><p>Fotos guardadas: '+(data.fotos?.length||0)+'. Si seleccionas nuevas, se reemplazan.</p><button value="draft">Guardar borrador</button> <button value="submit">Enviar a revisión</button></form><button class="outline" onclick="renderHostDashboard(hostCurrentSection)">Volver a mis fichas</button>');
  document.getElementById('hostEditor').onsubmit=async event=>{
   event.preventDefault();
   const form=event.currentTarget,button=event.submitter;
-  button.disabled=true;
+  const buttons=[...form.querySelectorAll('button[type="submit"],button:not([type])')];
+  buttons.forEach(control=>{control.disabled=true;});
   try{
-   const files=[...document.getElementById('hostPhotos').files];
-   if(files.length>4||files.some(item=>item.type!=='image/jpeg'||item.size>300000))throw new Error('Selecciona hasta cuatro fotos JPG de máximo 300 KB cada una.');
-   const photos=files.length?await Promise.all(files.map(file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('No se pudo leer la foto.'));reader.readAsDataURL(file);} ))):data.fotos||[];
+   const files=[...form.querySelector('#hostPhotos').files];
+   if(files.length>4)throw new Error('Selecciona hasta cuatro fotos.');
+   if(files.some(file=>file.size>25*1024*1024))throw new Error('Cada foto original puede pesar hasta 25 MB.');
+   const photos=files.length?[]:data.fotos||[];
+   for(const [index,file] of files.entries()){
+    hostMessage('Preparando foto '+(index+1)+' de '+files.length+'…');
+    photos.push(await prepareHostPhoto(file));
+   }
+   hostMessage('Guardando ficha…');
    await hostRequest('hosts/fichas','POST',{...Object.fromEntries(new FormData(form)),id:row?Number(row.id):null,fotos:photos,enviar:button.value==='submit'});
    await openHostPortal(data.tipo==='Experiencia'?'experiencias':'alojamientos');
-  }catch(error){hostMessage(error.message);}finally{button.disabled=false;}
+  }catch(error){hostMessage(error.message);}finally{buttons.forEach(control=>{control.disabled=false;});}
  };
 }
 function renderHostCard(row){
