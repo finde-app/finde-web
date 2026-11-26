@@ -126,14 +126,19 @@ function hostListingRows(rows){
   return `<article class="host-listing">${photo?'<img src="'+hostEscape(photo)+'" alt="">':'<div class="host-photo-empty" aria-hidden="true">⌂</div>'}<div><h3>${hostEscape(d.titulo)}</h3><p>${hostEscape(d.ubicacion)} · ${money(d.precio)}</p><span class="host-status" data-state="${hostEscape(row.estado)}">${hostEscape(hostStates[row.estado]||row.estado)}</span>${row.nota?'<p>'+hostEscape(row.nota)+'</p>':''}</div><button type="button" class="outline" data-host-listing="${Number(row.id)}">${row.estado==='pendiente'?'Ver ficha':'Editar'}</button></article>`;
  }).join('');
 }
-function renderHostAccommodationList(area,rows){
+function renderHostListings(area,rows,isStay){
+ const singular=isStay?'alojamiento':'experiencia';
+ const plural=isStay?'alojamientos':'experiencias';
+ const title=isStay?'Alojamiento':'Experiencia';
+ const priceLabel=isStay?'Precio por noche':'Precio';
+ const createLabel=isStay?'Nuevo alojamiento':'Nueva experiencia';
  const entries=rows.map(row=>({row,data:hostRead(row.ficha)}));
  let view=rows.length>6?'lista':'tarjetas';
  let page=1;
- area.innerHTML='<div class="host-stay-toolbar"><label>Buscar alojamiento<input type="search" placeholder="Nombre o ubicación"></label><label>Estado<select><option value="">Todos los estados</option>'+
+ area.innerHTML='<div class="host-stay-toolbar"><label>Buscar '+singular+'<input type="search" placeholder="Nombre o ubicación"></label><label>Estado<select><option value="">Todos los estados</option>'+
   Object.entries(hostStates).map(([id,label])=>'<option value="'+id+'">'+label+'</option>').join('')+'</select></label>'+
-  '<div class="host-stay-modes" aria-label="Vista de alojamientos"><button type="button" data-stay-view="lista">Lista</button><button type="button" data-stay-view="tarjetas">Tarjetas</button></div></div>'+
-  '<div data-stay-results></div><div class="host-stay-footer"><span role="status"></span><nav data-stay-pages aria-label="Páginas de alojamientos"></nav></div>';
+  '<div class="host-stay-modes" aria-label="Vista de '+plural+'"><button type="button" data-stay-view="lista">Lista</button><button type="button" data-stay-view="tarjetas">Tarjetas</button></div></div>'+
+  '<div data-stay-results></div><div class="host-stay-footer"><span role="status"></span><nav data-stay-pages aria-label="Páginas de '+plural+'"></nav></div>';
  const search=area.querySelector('input');
  const state=area.querySelector('select');
  const results=area.querySelector('[data-stay-results]');
@@ -160,10 +165,10 @@ function renderHostAccommodationList(area,rows){
    const action='<button type="button" class="outline" data-host-listing="'+Number(row.id)+'">'+(labels[row.estado]||'Editar ficha')+'</button>';
    const note=row.nota?'<p class="host-stay-note">'+hostEscape(row.nota)+'</p>':'';
    return view==='lista'?'<tr><th scope="row"><div class="host-stay-identity">'+media+'<span>'+name+note+'</span></div></th><td>'+place+'</td><td>'+price+'</td><td>'+badge+'</td><td>'+action+'</td></tr>':
-    '<article class="host-card host-stay-card">'+media+'<h2>'+name+'</h2><p>'+place+'</p><p><strong>'+price+'</strong> por noche</p><p>'+badge+'</p>'+note+action+'</article>';
+    '<article class="host-card host-stay-card">'+media+'<h2>'+name+'</h2><p>'+place+'</p><p><strong>'+price+'</strong>'+(isStay?' por noche':'')+'</p><p>'+badge+'</p>'+note+action+'</article>';
   }).join('');
-  results.innerHTML=!visible.length?'<p class="host-card">'+(rows.length?'No hay alojamientos que coincidan con los filtros.':'Todavía no tienes alojamientos. Usa «Nuevo alojamiento» para crear una ficha.')+'</p>':
-   view==='lista'?'<div class="host-card host-stay-table" tabindex="0" aria-label="Lista de alojamientos"><table><thead><tr><th scope="col">Alojamiento</th><th scope="col">Ubicación</th><th scope="col">Precio por noche</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody>'+cards+'</tbody></table></div>':
+  results.innerHTML=!visible.length?'<p class="host-card">'+(rows.length?'No hay '+plural+' que coincidan con los filtros.':'Todavía no tienes '+plural+'. Usa «'+createLabel+'» para crear una ficha.')+'</p>':
+   view==='lista'?'<div class="host-card host-stay-table" tabindex="0" aria-label="Lista de '+plural+'"><table><thead><tr><th scope="col">'+title+'</th><th scope="col">Ubicación</th><th scope="col">'+priceLabel+'</th><th scope="col">Estado</th><th scope="col">Acción</th></tr></thead><tbody>'+cards+'</tbody></table></div>':
    '<div class="host-stay-grid">'+cards+'</div>';
   area.querySelector('[role=status]').textContent=filtered.length?'Mostrando '+(start+1)+'–'+(start+visible.length)+' de '+filtered.length:'';
   pages.innerHTML=count>1?Array.from({length:count},(_,i)=>'<button type="button" class="outline" data-stay-page="'+(i+1)+'" aria-label="Página '+(i+1)+'"'+(i+1===page?' aria-current="page"':'')+'>'+(i+1)+'</button>').join(''):'';
@@ -349,10 +354,8 @@ function renderHostDashboard(section='resumen'){
  let content;
  if(section==='resumen'){
   content=`<div class="host-metrics"><article><span>Próximas llegadas</span><strong>—</strong></article><article><span>Fichas en revisión</span><strong>${pending}</strong></article><article><span>Pagos pendientes</span><strong>—</strong></article></div><div class="host-overview"><div class="host-card"><h2>Mis alojamientos</h2>${hostListingRows(stays.slice(0,4))}</div><div class="host-card"><h2>Próximas reservas</h2><p>Las reservas del anfitrión aún no están conectadas al panel.</p><button type="button" class="outline" data-host-section="reservas">Ver reservas</button></div></div>`;
- }else if(section==='alojamientos'){
-  content='<div id="hostAccommodationList"></div>';
  }else if(listingSection){
-  content='<div class="host-card">'+hostListingRows(experiences)+'</div>';
+  content='<div id="hostListings"></div>';
  }else if(section==='reservas'){
   content='<div id="hostReservations"></div>';
  }else if(section==='calendario'){
@@ -365,15 +368,15 @@ function renderHostDashboard(section='resumen'){
   const notes={pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
   content='<div class="host-card"><p>'+notes[section]+'</p></div>';
  }
- hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':section==='alojamientos'?stays.length+(stays.length===1?' alojamiento':' alojamientos'):'',content,listingSection||section==='resumen'?create:'');
+ hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':section==='alojamientos'?stays.length+(stays.length===1?' alojamiento':' alojamientos'):section==='experiencias'?experiences.length+(experiences.length===1?' experiencia':' experiencias'):'',content,listingSection||section==='resumen'?create:'');
  if(section==='cuenta')void loadHostCompany();
  if(section==='pagos')void loadHostPayouts();
  if(section==='reservas')renderHostReservations(document.getElementById('hostReservations'),hostPortalData.reservas,cuenta);
  if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas);
  const newButton=document.getElementById('hostNew');
  if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
- const accommodation=document.getElementById('hostAccommodationList');
- if(accommodation)renderHostAccommodationList(accommodation,stays);
+ const list=document.getElementById('hostListings');
+ if(list)renderHostListings(list,section==='alojamientos'?stays:experiences,section==='alojamientos');
  hostView.firstElementChild.addEventListener('click',event=>{
   const button=event.target.closest('[data-host-listing]');
   if(!button)return;
