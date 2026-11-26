@@ -208,6 +208,80 @@ function renderHostCalendar(area,bookings){
  }
  render();
 }
+const hostReservationExamples=[
+ {codigo:'FD-1042',tipo:'Alojamiento',titulo:'Cabaña del Lago',huesped:'Diego M.',inicio:'2026-11-26',hora:'15:00',fin:'2026-11-28',salida:'11:00',personas:2,monto:130000,estado:'Confirmada',comentario:'Llegada tardía'},
+ {codigo:'FD-1043',tipo:'Experiencia',titulo:'Tour por el lago',huesped:'Camila R.',inicio:'2026-11-26',hora:'10:00',personas:4,monto:80000,estado:'Confirmada',comentario:'Consultar punto de encuentro'},
+ {codigo:'FD-1044',tipo:'Alojamiento',titulo:'Refugio Bosque Nativo',huesped:'Paula G.',inicio:'2026-11-26',hora:'17:00',fin:'2026-11-29',salida:'11:00',personas:3,monto:216000,estado:'Pendiente'},
+ {codigo:'FD-1045',tipo:'Experiencia',titulo:'Caminata al mirador',huesped:'Martín A.',inicio:'2026-11-27',hora:'09:00',personas:2,monto:42000,estado:'Cancelada'}
+];
+const hostReservationDate=new Intl.DateTimeFormat('es-CL',{day:'numeric',month:'short',timeZone:'UTC'});
+function hostReservationTime(date,time){
+ return date?hostReservationDate.format(new Date(date+'T12:00:00Z'))+(time?' · '+time:''):'—';
+}
+function renderHostReservations(area,bookings,account){
+ const connected=Array.isArray(bookings);
+ const demo=!connected&&location.hostname==='prueba.findito.cl';
+ const rows=demo?hostReservationExamples:bookings||[];
+ const storageKey='findito-host-reservation-demo-'+account.id;
+ let notes={};
+ if(demo){try{notes=JSON.parse(localStorage.getItem(storageKey)||'{}')||{};}catch{}}
+ area.innerHTML=(demo?'<p class="host-reservation-notice"><strong>Datos de ejemplo.</strong> Las reservas de tu cuenta aún no están conectadas al panel. Los comentarios de prueba se guardan en este navegador.</p>':'')+
+  '<div class="host-reservation-filters"><label>Buscar<input type="search" name="buscar" placeholder="Código o huésped"></label>'+
+  '<label>Tipo<select name="tipo"><option value="">Todos</option><option>Alojamiento</option><option>Experiencia</option></select></label>'+
+  '<label>Estado<select name="estado"><option value="">Todos</option><option>Confirmada</option><option>Pendiente</option><option>Cancelada</option></select></label>'+
+  '<label>Fecha<input type="date" name="fecha"></label><button type="button" data-res-calendar>Ver calendario</button></div>'+
+  '<div class="host-card host-reservation-table" tabindex="0" aria-label="Tabla de reservas"><table><thead><tr>'+
+  ['Código','Alojamiento o experiencia','Huésped','Llegada o inicio','Salida','Personas','Monto','Estado','Comentario','Acción'].map(label=>'<th scope="col">'+label+'</th>').join('')+
+  '</tr></thead><tbody></tbody></table><p data-res-empty hidden role="status"></p></div><dialog class="host-reservation-dialog" aria-label="Reserva"></dialog>';
+ const filters=area.querySelector('.host-reservation-filters');
+ const tbody=area.querySelector('tbody');
+ const empty=area.querySelector('[data-res-empty]');
+ const dialog=area.querySelector('dialog');
+ const note=row=>notes[row.codigo]??row.comentario??'';
+ const normalize=value=>String(value??'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+ function refresh(){
+  const search=normalize(filters.querySelector('[name=buscar]').value.trim());
+  const type=filters.querySelector('[name=tipo]').value;
+  const state=filters.querySelector('[name=estado]').value;
+  const date=filters.querySelector('[name=fecha]').value;
+  const visible=rows.filter(row=>(!search||normalize(row.codigo+' '+row.huesped).includes(search))&&(!type||row.tipo===type)&&(!state||row.estado===state)&&(!date||row.inicio<=date&&date<=(row.fin||row.inicio)));
+  tbody.innerHTML=visible.map(row=>{
+   const id=rows.indexOf(row);
+   return '<tr><th scope="row">'+hostEscape(row.codigo)+'</th><td><strong>'+hostEscape(row.titulo)+'</strong><small>'+hostEscape(row.tipo)+'</small></td><td>'+hostEscape(row.huesped)+'</td><td>'+hostEscape(hostReservationTime(row.inicio,row.hora))+'</td><td>'+hostEscape(hostReservationTime(row.fin,row.salida))+'</td><td>'+hostEscape(row.personas??'—')+'</td><td>'+(row.monto==null?'—':money(row.monto))+'</td>'+
+    '<td><span class="host-reservation-state" data-state="'+hostEscape(row.estado)+'">'+hostEscape(row.estado)+'</span></td>'+
+    '<td>'+(demo?'<button class="outline host-reservation-note" type="button" data-res-note="'+id+'" aria-label="'+(note(row)?'Editar':'Agregar')+' comentario de '+hostEscape(row.codigo)+'">'+hostEscape(note(row)||'Agregar comentario')+(note(row)?' ✎':'')+'</button>':hostEscape(note(row)||'—'))+'</td>'+
+    '<td><button type="button" class="outline" data-res-detail="'+id+'">Ver detalle</button></td></tr>';
+  }).join('');
+  empty.hidden=visible.length>0;
+  empty.textContent=!connected&&!demo?'Las reservas de tu cuenta aún no están conectadas al panel.':rows.length?'No hay reservas que coincidan con los filtros.':'Aún no hay reservas.';
+ }
+ filters.addEventListener('input',refresh);
+ area.querySelector('[data-res-calendar]').onclick=()=>renderHostDashboard('calendario');
+ tbody.onclick=event=>{
+  const trigger=event.target.closest('[data-res-note],[data-res-detail]');
+  if(!trigger)return;
+  const editing=trigger.hasAttribute('data-res-note');
+  const row=rows[Number(editing?trigger.dataset.resNote:trigger.dataset.resDetail)];
+  const title=editing?'Comentario interno':'Reserva '+row.codigo;
+  dialog.innerHTML='<h2>'+hostEscape(title)+'</h2>'+
+   (editing?'<form><label>Comentario de '+hostEscape(row.codigo)+'<textarea name="comentario" maxlength="500" rows="4">'+hostEscape(note(row))+'</textarea></label><p role="status"></p><button type="submit">Guardar comentario</button> </form>':
+   '<dl>'+Object.entries({'Alojamiento o experiencia':row.titulo,'Huésped':row.huesped,'Llegada o inicio':hostReservationTime(row.inicio,row.hora),'Salida':hostReservationTime(row.fin,row.salida),'Personas':row.personas,'Monto':row.monto==null?'—':money(row.monto),'Estado':row.estado,'Comentario interno':note(row)||'—'}).map(([label,value])=>'<div class="host-company-row"><dt>'+label+'</dt><dd>'+hostEscape(value??'—')+'</dd></div>').join('')+'</dl>')+
+   '<button class="outline" type="button" data-res-close>'+ (editing?'Cancelar':'Cerrar')+'</button>';
+  dialog.querySelector('[data-res-close]').onclick=()=>dialog.close();
+  const form=dialog.querySelector('form');
+  if(form)form.onsubmit=event=>{
+   event.preventDefault();
+   const updated={...notes,[row.codigo]:form.elements.comentario.value.trim()};
+   try{localStorage.setItem(storageKey,JSON.stringify(updated));}
+   catch{form.querySelector('[role=status]').textContent='El navegador no permitió guardar el comentario.';return;}
+   notes=updated;dialog.close();refresh();
+   tbody.querySelector('[data-res-note="'+rows.indexOf(row)+'"]')?.focus();
+  };
+  dialog.showModal();
+ };
+ refresh();
+}
+
 function renderHostDashboard(section='resumen'){
  if(!hostPortalData)return openHostPortal(section);
  hostCurrentSection=section;
@@ -223,6 +297,8 @@ function renderHostDashboard(section='resumen'){
   content=`<div class="host-metrics"><article><span>Próximas llegadas</span><strong>—</strong></article><article><span>Fichas en revisión</span><strong>${pending}</strong></article><article><span>Pagos pendientes</span><strong>—</strong></article></div><div class="host-overview"><div class="host-card"><h2>Mis alojamientos</h2>${hostListingRows(stays.slice(0,4))}</div><div class="host-card"><h2>Próximas reservas</h2><p>Las reservas del anfitrión aún no están conectadas al panel.</p><button type="button" class="outline" data-host-section="reservas">Ver reservas</button></div></div>`;
  }else if(listingSection){
   content='<div class="host-card">'+hostListingRows(section==='alojamientos'?stays:experiences)+'</div>';
+ }else if(section==='reservas'){
+  content='<div id="hostReservations"></div>';
  }else if(section==='calendario'){
   content='<div id="hostCalendar" class="host-card host-calendar"></div>';
  }else if(section==='pagos'){
@@ -230,12 +306,13 @@ function renderHostDashboard(section='resumen'){
  }else if(section==='cuenta'){
   content='<div id="hostCompany"><p>Cargando…</p></div>';
  }else{
-  const notes={reservas:'Las reservas de tu cuenta aún no están conectadas al panel.',pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
+  const notes={pagos:'Los pagos de tu cuenta aún no están conectados al panel.',reportes:'Los reportes de ocupación e ingresos estarán disponibles al conectar reservas y pagos.'};
   content='<div class="host-card"><p>'+notes[section]+'</p></div>';
  }
  hostDashboardFrame(section,section==='resumen'?'Hola, '+hostEscape(cuenta.nombre):hostSections[section],section==='resumen'?'Resumen de tu actividad':'',content,listingSection||section==='resumen'?create:'');
  if(section==='cuenta')void loadHostCompany();
  if(section==='pagos')void loadHostPayouts();
+ if(section==='reservas')renderHostReservations(document.getElementById('hostReservations'),hostPortalData.reservas,cuenta);
  if(section==='calendario')renderHostCalendar(document.getElementById('hostCalendar'),hostPortalData.reservas);
  const newButton=document.getElementById('hostNew');
  if(newButton)newButton.onclick=()=>hostEditor(undefined,section==='experiencias'?'Experiencia':'Alojamiento');
